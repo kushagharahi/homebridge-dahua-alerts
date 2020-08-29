@@ -1,6 +1,6 @@
 {
   "name": "homebridge-dahua-alerts",
-  "version": "0.0.10",
+  "version": "0.0.19",
   "description": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
   "main": "dist/index.js",
   "dependencies": {
@@ -8,12 +8,13 @@
     "moment": "2.27.0",
     "net-keepalive": "^1.1.1",
     "path": "^0.12.7",
-    "request": "^2.85.0",
-    "request-progress": "^3.0.0"
+    "request": "^2.88.2",
+    "request-progress": "^3.0.0",
+    "axios": "^0.19.0",
+    "@types/request": "^2.48.5"
   },
   "devDependencies": {
     "@types/node": "^14.6.2",
-    "axios": "^0.19.0",
     "homebridge": "^1.1.2",
     "rimraf": "^3.0.2",
     "typescript": "^4.0.2"

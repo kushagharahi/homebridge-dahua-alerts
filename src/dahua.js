@@ -12,8 +12,11 @@ var fs = require('fs');
 var path = require('path');
 var moment = require('moment');
 
-var TRACE   = true;
-var BASEURI   = false;
+var TRACE = true;
+var BASEURI = false;
+var USER = '';
+var PASS = '';
+var HOST = '';
 
 var dahua = function(options) {
   

@@ -1,32 +1,23 @@
 import {
 	API,
-	HAP,
 	IndependentPlatformPlugin,
 	Logging,
-	PlatformAccessory,
 	PlatformConfig
 } from 'homebridge'
 import { DahuaCameraConfig, CameraConfig } from './configTypes';
-import * as ipcamera from './dahua'
 import axios, { AxiosRequestConfig, AxiosPromise, AxiosResponse } from 'axios';
+let ipcamera = require('./dahua')
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
 const PLATFORM_NAME = 'dahuaMotionAlerts';
 
-let hap: HAP;
-let Accessory: typeof PlatformAccessory;
-
 export = (api: API) => {
-	hap = api.hap;
-	Accessory = api.platformAccessory;
-
 	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, dahuaMotionPlatform);
 };
 
 class dahuaMotionPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging;
 	private readonly api: API;
-
 	private readonly config: DahuaCameraConfig;
 
 	constructor(log: Logging, config: PlatformConfig, api: API) {
@@ -34,15 +25,15 @@ class dahuaMotionPlatform implements IndependentPlatformPlugin {
 		this.config = config as unknown as DahuaCameraConfig
 		this.api = api
 		
-		if(this.isInvalidConfig(this.config)) {
+		if(this.isInvalidConfig(config)) {
 			this.log.error('Errors above, doing nothing')
 			return
 		} else {
 			let dahuaOptions = {
-				host: this.config.host,
+				host: config.host,
 				port: '80',
-				user: this.config.user,
-				pass: this.config.pass,
+				user: config.user,
+				pass: config.pass,
 				log: false
 			}
 			let dahua = new ipcamera.dahua(dahuaOptions)
@@ -77,7 +68,7 @@ class dahuaMotionPlatform implements IndependentPlatformPlugin {
 		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${this.config.cameras[cameraIndex].cameraName}`)
 	}
 
-	private isInvalidConfig(config: DahuaCameraConfig): boolean {
+	private isInvalidConfig(config: PlatformConfig): boolean {
 		let error = false
 		if(!config.host) {
 			this.log.error('host not set in config!')
