@@ -1,0 +1,65 @@
+{
+    "pluginAlias": "dahuaMotionAlerts",
+    "pluginType": "platform",
+    "singular": true,
+    "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
+    "footerDisplay": "Raise [Issues](https://github.com/kushagharahi/homebridge-dahua-alerts/issues) or submit [Pull Requests](https://github.com/kushagharahi/homebridge-dahua-alerts/pulls) on [Project Page](https://github.com/kushagharahi/homebridge-dahua-alerts).",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "host": {
+                "title": "host",
+                "type": "string",
+                "required": true,
+                "placeholder": "127.0.0.1",
+                "description": "Host of your Dahua NVR"
+            },
+			"user": {
+				"title": "user",
+                "type": "string",
+                "required": true,
+				"placeholder": "admin",
+				"description": "Username of your Dahua NVR"
+            },
+            "pass": {
+				"title": "pass",
+                "type": "string",
+                "required": true,
+				"placeholder": "000000",
+				"description": "Password of your Dahua NVR"
+            },
+            "homebridgeCameraFfmpegHttpPort": {
+				"title": "homebridge-camera-ffmpeg HTTP port",
+                "type": "number",
+                "required": true,
+				"placeholder": "8080",
+				"description": "homebridge-camera-ffmpeg HTTP port to accept motion notifications"
+			},
+            "cameras": {
+                "title": "Cameras",
+                "type": "array",
+                "required": true,
+                "minLength": 1,
+                "items": {
+                    "title": "Camera",
+                    "type": "object",
+                    "properties": {
+                        "index": {
+                            "title": "Camera Index",
+                            "type": "number",
+                            "required": true,
+                            "placeholder":"0",
+                			"description": "Index of your camera on your NVR. Generally you take X from CAM X and subtract 1. So for CAM 1, the index would be 0"
+                        },
+                        "cameraName": {
+                            "title": "Camera Name",
+                            "type": "string",
+                            "required": true,
+                			"description": "Camera name you set in homebridge-camera-ffmpeg"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
