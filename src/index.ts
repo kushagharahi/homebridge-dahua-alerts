@@ -5,27 +5,27 @@ import {
 	PlatformConfig
 } from 'homebridge'
 import { DahuaCameraConfig } from './configTypes';
-import axios, { AxiosRequestConfig, AxiosPromise, AxiosResponse } from 'axios';
-let ipcamera = require('./dahua')
+import axios, {} from 'axios';
+import {DahuaEvents} from './dahua'
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
-const PLATFORM_NAME = 'dahuaMotionAlerts';
+const PLATFORM_NAME = 'dahua-alerts';
 
 export = (api: API) => {
-	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, dahuaMotionPlatform);
+	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, DahuaMotionAlertsPlatform);
 };
 
-class dahuaMotionPlatform implements IndependentPlatformPlugin {
-	private readonly log: Logging;
-	private readonly api: API;
-	private readonly config: DahuaCameraConfig;
-	private cameras: Map<number, string>;
+class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
+	private readonly log: Logging
+	private readonly api: API
+	private readonly config: DahuaCameraConfig
+	private cameras: Map<number, string>
 
 	constructor(log: Logging, config: PlatformConfig, api: API) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
 		this.api = api
-		this.cameras = new Map();
+		this.cameras = new Map()
 		
 		if(this.isInvalidConfig(config)) {
 			this.log.error('Errors above, doing nothing')
@@ -37,38 +37,37 @@ class dahuaMotionPlatform implements IndependentPlatformPlugin {
 
 			this.log.info("Cameras", this.cameras)
 
-			let dahuaOptions = {
-				host: config.host,
-				port: '80',
-				user: config.user,
-				pass: config.pass,
-				log: false
-			}
-			
-			let dahua = new ipcamera.dahua(dahuaOptions)
-			dahua.on('alarm', this.alertMotion)
+			let events: DahuaEvents = new DahuaEvents(this.config.host, this.config.user, this.config.pass);
+
+			events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
+			events.getEventEmitter().on(events.ERROR_EVENT_NAME, this.logError)
 		}
 	}
 
-	private alertMotion = (code: string, action: string, index: number) => {
+	private alertMotion = (action: string, index: number) => {
 		let cameraName = this.cameras.get(Number(index))
+		if(cameraName) {
+			if (action === 'Start') {
+				this.log.info('Video Motion Detected on', index, cameraName)
+				axios.post(this.motionUrl(cameraName)).then(res => {
+					this.log.info('Video motion posted to homebridge-camera-ffmpeg, received', res.data)
+				}).catch(err => {
+					this.log.error('Error when posting video motion to homebridge-camera-ffmpeg, received', err.data)
+				})
+			}
+			if (action === 'Stop')	{
+				this.log.info('Video Motion Ended on', index, cameraName)
+				axios.post(this.resetMotionUrl(cameraName)).then(res => {
+					this.log.info('Reset video motion posted to homebridge-camera-ffmpeg, received ', res.data)
+				}).catch(err => {
+					this.log.error('Error when posting reset video motion to homebridge-camera-ffmpeg, received', err.data)
+				})
+			}
+		}
+	}
 
-		if (code === 'VideoMotion' && action === 'Start' && cameraName)	{
-			this.log.info('Video Motion Detected on', index, cameraName)
-			axios.post(this.motionUrl(cameraName)).then((res) => {
-				this.log.info('Video motion posted to homebridge-camera-ffmpeg, received ', res.data)
-			}).catch((err) => {
-				this.log.error('Error when posting video motion to homebridge-camera-ffmpeg, received ', err.data)
-			})
-		}
-		if (code === 'VideoMotion' && action === 'Stop' && cameraName)	{
-			this.log.info('Video Motion Ended on', index, cameraName)
-			axios.post(this.resetMotionUrl(cameraName)).then((res) => {
-				this.log.info('Reset video motion posted to homebridge-camera-ffmpeg, received ', res.data)
-			}).catch((err) => {
-				this.log.error('Error when posting reset video motion to homebridge-camera-ffmpeg, received ', err.data)
-			})
-		}
+	private logError = (error) => {
+		this.log.error('Received error:', error)
 	}
 
 	private motionUrl = (cameraName: string): string => {
