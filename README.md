@@ -77,4 +77,4 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
 ```
 
 ## Credits
-`dahua.js` forked from [nayrnet/node-dahua-api](https://github.com/nayrnet/node-dahua-api)
+Referenced [nayrnet/node-dahua-api](https://github.com/nayrnet/node-dahua-api) for the Dahua/Lorex motion alerts API.
