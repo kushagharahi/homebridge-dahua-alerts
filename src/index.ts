@@ -4,7 +4,7 @@ import {
 	Logging,
 	PlatformConfig
 } from 'homebridge'
-import { DahuaCameraConfig, CameraConfig } from './configTypes';
+import { DahuaCameraConfig } from './configTypes';
 import axios, { AxiosRequestConfig, AxiosPromise, AxiosResponse } from 'axios';
 let ipcamera = require('./dahua')
 
@@ -19,16 +19,24 @@ class dahuaMotionPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging;
 	private readonly api: API;
 	private readonly config: DahuaCameraConfig;
+	private cameras: Map<number, string>;
 
 	constructor(log: Logging, config: PlatformConfig, api: API) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
 		this.api = api
+		this.cameras = new Map();
 		
 		if(this.isInvalidConfig(config)) {
 			this.log.error('Errors above, doing nothing')
 			return
 		} else {
+			config.cameras.forEach(camera => {
+				this.cameras.set(camera.index, camera.cameraName)
+			});
+
+			this.log.info("Cameras", this.cameras)
+
 			let dahuaOptions = {
 				host: config.host,
 				port: '80',
@@ -36,23 +44,26 @@ class dahuaMotionPlatform implements IndependentPlatformPlugin {
 				pass: config.pass,
 				log: false
 			}
+			
 			let dahua = new ipcamera.dahua(dahuaOptions)
 			dahua.on('alarm', this.alertMotion)
 		}
 	}
 
 	private alertMotion = (code: string, action: string, index: number) => {
-		if (code === 'VideoMotion' && action === 'Start')	{
-			this.log.info('Video Motion Detected on', index)
-			axios.post(this.motionUrl(index)).then((res) => {
+		let cameraName = this.cameras.get(Number(index))
+
+		if (code === 'VideoMotion' && action === 'Start' && cameraName)	{
+			this.log.info('Video Motion Detected on', index, cameraName)
+			axios.post(this.motionUrl(cameraName)).then((res) => {
 				this.log.info('Video motion posted to homebridge-camera-ffmpeg, received ', res.data)
 			}).catch((err) => {
 				this.log.error('Error when posting video motion to homebridge-camera-ffmpeg, received ', err.data)
 			})
 		}
-		if (code === 'VideoMotion' && action === 'Stop')	{
-			this.log.info('Video Motion Ended on', index)
-			axios.post(this.resetMotionUrl(index)).then((res) => {
+		if (code === 'VideoMotion' && action === 'Stop' && cameraName)	{
+			this.log.info('Video Motion Ended on', index, cameraName)
+			axios.post(this.resetMotionUrl(cameraName)).then((res) => {
 				this.log.info('Reset video motion posted to homebridge-camera-ffmpeg, received ', res.data)
 			}).catch((err) => {
 				this.log.error('Error when posting reset video motion to homebridge-camera-ffmpeg, received ', err.data)
@@ -60,15 +71,15 @@ class dahuaMotionPlatform implements IndependentPlatformPlugin {
 		}
 	}
 
-	private motionUrl = (cameraIndex: number): string => {
-		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion?${this.config.cameras[cameraIndex].cameraName}`)
+	private motionUrl = (cameraName: string): string => {
+		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion?${cameraName}`)
 	}
 
-	private resetMotionUrl = (cameraIndex: number): string => {
-		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${this.config.cameras[cameraIndex].cameraName}`)
+	private resetMotionUrl = (cameraName: string): string => {
+		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${cameraName}`)
 	}
 
-	private isInvalidConfig(config: PlatformConfig): boolean {
+	private isInvalidConfig = (config: PlatformConfig): boolean => {
 		let error = false
 		if(!config.host) {
 			this.log.error('host not set in config!')
