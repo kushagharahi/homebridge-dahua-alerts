@@ -3,13 +3,14 @@
 [![npm version](https://badge.fury.io/js/homebridge-dahua-alerts.svg)](https://badge.fury.io/js/homebridge-dahua-alerts)
 
 
-Motion alerts for dahua and lorex camera streams for `homebridge-camera-ffmpeg`.
+Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffmpeg 
 
 ## Installation
 1. Install Homebridge using the [official instructions](https://github.com/homebridge/homebridge/wiki).
 2. Install [`homebridge-camera-ffmpeg`](https://github.com/Sunoo/homebridge-camera-ffmpeg)
-3. Configure your RTSP streams in `homebridge-camera-ffmpeg` and configure [`Http-based Automation`](https://sunoo.github.io/homebridge-camera-ffmpeg/automation/http.html) for the camera streams you want motion detection. 
-4. Make sure to set `motionTimeout` to 0 and set HTTP Localhost Only to true.
+3. Configure your RTSP streams in `homebridge-camera-ffmpeg` and configure [`Http-based Automation`](https://sunoo.github.io/homebridge-camera-ffmpeg/automation/http.html) for the camera streams you want motion detection. Make sure to set `motionTimeout` to 0 and set HTTP Localhost Only to true.
+4. Install [`homebridge-dahua-alerts`](https://www.npmjs.com/package/homebridge-dahua-alerts).
+5. Configure your NVR and camera settings.
 
 ## Sample config.json
 
