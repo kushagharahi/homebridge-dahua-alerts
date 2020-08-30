@@ -72,7 +72,7 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
     "user": "admin",
     "pass": "<snip>",
     "homebridgeCameraFfmpegHttpPort": 8088,
-    "platform": "dahuaMotionAlerts"
+    "platform": "dahua-alerts"
 }
 ```
 
