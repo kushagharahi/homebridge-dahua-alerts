@@ -4,7 +4,7 @@ import {
 	Logging,
 	PlatformConfig
 } from 'homebridge'
-import { DahuaCameraConfig } from './configTypes';
+import { DahuaCameraConfig, CameraConfig } from './configTypes';
 import axios, {} from 'axios';
 import {DahuaEvents} from './dahua'
 
@@ -31,7 +31,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			this.log.error('Errors above, doing nothing')
 			return
 		} else {
-			config.cameras.forEach(camera => {
+			config.cameras.forEach((camera: CameraConfig) => {
 				this.cameras.set(camera.index, camera.cameraName)
 			});
 
