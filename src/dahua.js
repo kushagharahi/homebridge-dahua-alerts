@@ -70,10 +70,6 @@ dahua.prototype.connect = function(options) {
       handleDahuaEventConnection(self,options);
     });
 
-    client.on('error', function(err) {
-      handleDahuaEventError(self, err);
-    });
-
     client.on('data', function(data) {
        handleDahuaEventData(self, data);
     });
@@ -84,9 +80,9 @@ dahua.prototype.connect = function(options) {
     });
 
     client.on('error', function(err) {
+      setTimeout(function() { self.connect(options); }, 30000 );
       handleDahuaEventError(self, err);
     });
-
 };
 
 function handleDahuaEventData(self, data) {
