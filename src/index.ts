@@ -29,7 +29,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			this.log.error('Errors above, doing nothing')
 			return
 		} else {
-			config.cameras.forEach((camera: CameraConfig) => {
+			this.config.cameras.forEach((camera: CameraConfig) => {
 				this.cameras.set(camera.index, camera.cameraName)
 			})
 
