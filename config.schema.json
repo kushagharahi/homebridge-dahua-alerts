@@ -1,5 +1,5 @@
 {
-    "pluginAlias": "dahuaMotionAlerts",
+    "pluginAlias": "dahua-alerts",
     "pluginType": "platform",
     "singular": true,
     "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
