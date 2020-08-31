@@ -13,18 +13,16 @@ const PLATFORM_NAME = 'dahua-alerts';
 
 export = (api: API) => {
 	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, DahuaMotionAlertsPlatform);
-};
+}
 
 class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging
-	private readonly api: API
 	private readonly config: DahuaCameraConfig
 	private cameras: Map<number, string>
 
-	constructor(log: Logging, config: PlatformConfig, api: API) {
+	constructor(log: Logging, config: PlatformConfig) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
-		this.api = api
 		this.cameras = new Map()
 		
 		if(this.isInvalidConfig(config)) {
@@ -33,7 +31,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		} else {
 			config.cameras.forEach((camera: CameraConfig) => {
 				this.cameras.set(camera.index, camera.cameraName)
-			});
+			})
 
 			this.log.info("Cameras", this.cameras)
 
