@@ -25,7 +25,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		this.config = config as unknown as DahuaCameraConfig
 		this.cameras = new Map()
 		
-		if(this.isInvalidConfig(config)) {
+		if(this.isInvalidConfig(this.config)) {
 			this.log.error('Errors above, doing nothing')
 			return
 		} else {
@@ -76,7 +76,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${cameraName}`)
 	}
 
-	private isInvalidConfig = (config: PlatformConfig): boolean => {
+	private isInvalidConfig = (config: DahuaCameraConfig): boolean => {
 		let error = false
 		if(!config.host) {
 			this.log.error('host not set in config!')
