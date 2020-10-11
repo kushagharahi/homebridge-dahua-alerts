@@ -6,7 +6,7 @@ import {
 } from 'homebridge'
 import { DahuaCameraConfig, CameraConfig } from './configTypes';
 import axios, {} from 'axios';
-import {DahuaEvents} from './dahua'
+import { DahuaEvents } from './dahua'
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
 const PLATFORM_NAME = 'dahua-alerts';
@@ -38,7 +38,9 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			let events: DahuaEvents = new DahuaEvents(this.config.host, this.config.user, this.config.pass);
 
 			events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
-			events.getEventEmitter().on(events.ERROR_EVENT_NAME, this.logError)
+			events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data) => this.log.info(data))
+			events.getEventEmitter().on(events.CLOSE_EVENT_NAME, (data) => this.log.debug(data))
+			events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
 		}
 	}
 
@@ -46,26 +48,22 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		let cameraName = this.cameras.get(Number(index))
 		if(cameraName) {
 			if (action === 'Start') {
-				this.log.info('Video Motion Detected on', index, cameraName)
+				this.log.debug('Video Motion Detected on', index, cameraName)
 				axios.post(this.motionUrl(cameraName)).then(res => {
-					this.log.info('Video motion posted to homebridge-camera-ffmpeg, received', res.data)
+					this.log.info(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch(err => {
 					this.log.error('Error when posting video motion to homebridge-camera-ffmpeg, received', err.data)
 				})
 			}
 			if (action === 'Stop')	{
-				this.log.info('Video Motion Ended on', index, cameraName)
+				this.log.debug('Video Motion Ended on', index, cameraName)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
-					this.log.info('Reset video motion posted to homebridge-camera-ffmpeg, received ', res.data)
+					this.log.info(`Reset motion for  ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch(err => {
 					this.log.error('Error when posting reset video motion to homebridge-camera-ffmpeg, received', err.data)
 				})
 			}
 		}
-	}
-
-	private logError = (error) => {
-		this.log.error('Received error:', error)
 	}
 
 	private motionUrl = (cameraName: string): string => {

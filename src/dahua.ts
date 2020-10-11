@@ -8,8 +8,12 @@ class DahuaEvents {
     private HEADERS: any = {'Accept':'multipart/x-mixed-replace'}
 
     private eventEmitter: EventEmitter
-    public ALARM_EVENT_NAME: string = 'alarm'
-    public ERROR_EVENT_NAME: string = 'error'
+    private RECONNECT_INTERVAL_MS:  number = 10000
+    public ALARM_EVENT_NAME:        string = 'alarm'
+    public ERROR_EVENT_NAME:        string = 'error'
+    public CLOSE_EVENT_NAME:        string = 'close'
+    public DATA_EVENT_NAME:         string = 'data'
+    public RECONNECTING_EVENT_NAME:  string = 'reconnecting'
 
     constructor(host: string, user: string, pass: string) {
         const auth: AxiosBasicCredentials = {
@@ -18,6 +22,7 @@ class DahuaEvents {
         }
         const keepAliveAgent: Agent = new Agent({
             keepAlive: true,
+            keepAliveMsecs: 1000,
             maxSockets: 1,
             maxFreeSockets: 0,
             timeout: 30000 //30s
@@ -29,7 +34,8 @@ class DahuaEvents {
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
-            responseType: 'stream'
+            responseType: 'stream',
+            timeout: 30000
         }
 
         this.eventEmitter = new EventEmitter()
@@ -39,25 +45,31 @@ class DahuaEvents {
 
     private connect = (axiosRequestConfig: AxiosRequestConfig) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
-            res.data.socket.on('data', (data: Buffer) => {
-                this.parseEventData(data.toString())
+            res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
+                let event = this.parseEventData(data.toString())
+                this.eventEmitter.emit(this.ALARM_EVENT_NAME, event.action, event.index)
+            })
+
+            res.data.socket.on(this.CLOSE_EVENT_NAME, (close: Buffer) => {
+                this.eventEmitter.emit(this.CLOSE_EVENT_NAME, "Socket connection timed out or closed by NVR.")
+                this.reconnect(axiosRequestConfig)
             })
         }).catch((err: AxiosError) => {
-            this.eventEmitter.emit(this.ERROR_EVENT_NAME, err)
+            this.eventEmitter.emit(this.ERROR_EVENT_NAME, "Error Received, reconnecting ", err)
             this.reconnect(axiosRequestConfig)
-        }).then(() => {
-            this.reconnect(axiosRequestConfig)
-        }) 
+        })
     }
 
+    
     private reconnect = (axiosRequestConfig: AxiosRequestConfig) => {
         //reconnect after 30s
+        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting in ${this.RECONNECT_INTERVAL_MS/1000}s.`)
         setTimeout(() => {
             this.connect(axiosRequestConfig)
-        }, 30000)
+        }, this.RECONNECT_INTERVAL_MS)
     }
 
-    private parseEventData = (data: string) => {
+    private parseEventData = (data: string) : {action: string, index: string} => {
         /** Sample data:
          
             myboundary
@@ -69,7 +81,7 @@ class DahuaEvents {
         let alarm = res[3].split(';')
         let action = alarm[1].substr(7)
         let index = alarm[2].substr(6)
-        this.eventEmitter.emit(this.ALARM_EVENT_NAME, action, index)
+        return { action : action, index : index };
     }
 
     public getEventEmitter = (): EventEmitter => {
