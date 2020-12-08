@@ -22,6 +22,7 @@ class DahuaEvents {
         const keepAliveAgent: Agent = new Agent({
             keepAlive: true,
             keepAliveMsecs: 1000,
+            rejectUnauthorized: false, 
             maxSockets: 1,
             maxFreeSockets: 0,
             timeout: 30000 //30s
