@@ -61,12 +61,12 @@ class DahuaEvents {
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
                                      error: `Error Received`, 
-                                     errorDetails: "Error Details: "
+                                     errorDetails: "Error Details:"
                                     }
 
             // Request made and server responded with response
             if(err.response) {
-                error.errorDetails = `${error.errorDetails}Status Code: ${err.response.status}\nResponse:${err.response.data.statusMessage}`
+                error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
             // client never received a response, or request never left
             } else if(err.request) {
                 error.errorDetails = `${error.errorDetails} No Response`
