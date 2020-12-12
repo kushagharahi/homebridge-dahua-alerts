@@ -6,7 +6,7 @@ import {
 } from 'homebridge'
 import { DahuaCameraConfig, CameraConfig } from './configTypes';
 import axios, {} from 'axios';
-import { DahuaEvents } from './dahua'
+import { DahuaError, DahuaEvents } from './dahua'
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
 const PLATFORM_NAME = 'dahua-alerts';
@@ -38,8 +38,11 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			let events: DahuaEvents = new DahuaEvents(this.config.host, this.config.user, this.config.pass);
 
 			events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
-			events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data) => this.log.info(data))
-			events.getEventEmitter().on(events.CLOSE_EVENT_NAME, (data) => this.log.debug(data))
+			events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data: DahuaError) => { 
+				this.log.error(`${data.error} (for more info enable debug logging)`)
+				this.log.debug(`${data.errorDetails}`)
+			})
+			events.getEventEmitter().on(events.DEBUG_EVENT_NAME, (data) => this.log.debug(data))
 			events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
 		}
 	}
