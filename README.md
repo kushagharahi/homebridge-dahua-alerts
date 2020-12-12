@@ -1,6 +1,6 @@
 # homebridge-dahua-alerts
 
-[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) [![npm version](https://badge.fury.io/js/homebridge-dahua-alerts.svg)](https://badge.fury.io/js/homebridge-dahua-alerts) ![npm total downloads](https://img.shields.io/npm/dt/homebridge-dahua-alerts.svg)
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) [![npm version](https://badge.fury.io/js/homebridge-dahua-alerts.svg)](https://www.npmjs.com/package/homebridge-dahua-alerts) [![npm total downloads](https://img.shields.io/npm/dt/homebridge-dahua-alerts.svg)](https://www.npmjs.com/package/homebridge-dahua-alerts)
 
 
 Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffmpeg 
