@@ -1,6 +1,7 @@
 import Axios, {AxiosBasicCredentials, AxiosResponse, AxiosError, AxiosRequestConfig} from 'axios'
 import { Agent } from 'http'
 import { EventEmitter } from 'events'
+import crypto from 'crypto'
 
 class DahuaEvents {
     //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
@@ -44,10 +45,10 @@ class DahuaEvents {
 
         this.eventEmitter = new EventEmitter()
 
-        this.connect(axiosRequestConfig)
+        this.connect(axiosRequestConfig, 0)
     }
 
-    private connect = (axiosRequestConfig: AxiosRequestConfig) => {
+    private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
             res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved: ${data.toString()}`)
@@ -67,6 +68,34 @@ class DahuaEvents {
 
             // Request made and server responded with response
             if(err.response) {
+                if(err.response.status === 401) {
+                    if(err.response.headers['www-authenticate']) {
+                        //digest auth, build digest auth header
+                        const authDetails = err.response.headers['www-authenticate'].split(', ').map(v => v.split('='))
+
+                        ++count
+                        const nonceCount = ('00000000' + count).slice(-8)
+                        const cnonce = crypto.randomBytes(24).toString('hex')
+                
+                        const realm = authDetails[0][1].replace(/"/g, '')
+                        const nonce = authDetails[2][1].replace(/"/g, '')
+                
+                        const md5 = str => crypto.createHash('md5').update(str).digest('hex')
+                
+                        const HA1 = md5(`${axiosRequestConfig.auth?.username}:${realm}:${axiosRequestConfig.auth?.password}`)
+                        const HA2 = md5(`GET:${this.EVENTS_URI}`);
+                        const response = md5(`${HA1}:${nonce}:${nonceCount}:${cnonce}:auth:${HA2}`)
+                
+                        this.HEADERS['authorization'] = `Digest username="${axiosRequestConfig.auth?.username}",realm="${realm}",` +
+                        `nonce="${nonce}",uri="${this.EVENTS_URI}",qop="auth",algorithm="MD5",` +
+                        `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`
+                        
+                        axiosRequestConfig.headers = this.HEADERS
+
+                        this.connect(axiosRequestConfig, count)
+                        return
+                    }
+                }
                 error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
             // client never received a response, or request never left
             } else if(err.request) {
@@ -85,7 +114,7 @@ class DahuaEvents {
         //reconnect after 30s
         this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting in ${reconnection_interval_ms/1000}s.`)
         setTimeout(() => {
-            this.connect(axiosRequestConfig)
+            this.connect(axiosRequestConfig, 0)
         }, reconnection_interval_ms)
     }
 
@@ -107,18 +136,24 @@ class DahuaEvents {
                 _msgid: "e2a19ebd.fe23f2"
             }
          */
-
-        if(data.startsWith("{", 0)) {
-            let alarm = JSON.parse(data)
-            if(alarm.action && alarm.index) {
-                return { action: alarm.action, index: alarm.index }
+        let action = ""
+        let index = ""
+        try {
+            if(data.startsWith("{", 0)) {
+                let alarm = JSON.parse(data)
+                if(alarm.action && alarm.index) {
+                   action = alarm.action
+                   index = alarm.index
+                }
+            } else {
+                let res = data.split('\n')
+                let alarm = res[3].split(';')
+                action = alarm[1].substr(7)
+                index = alarm[2].substr(6)
             }
+        } catch (e) {
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
         }
-        
-        let res = data.split('\n')
-        let alarm = res[3].split(';')
-        let action = alarm[1].substr(7)
-        let index = alarm[2].substr(6)
         return { action: action, index: index }
     }
 
