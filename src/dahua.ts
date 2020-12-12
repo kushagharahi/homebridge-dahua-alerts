@@ -61,9 +61,20 @@ class DahuaEvents {
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
                                      error: `Error Received`, 
-                                     errorDetails: `Error Details: ${JSON.stringify({"status code": err.code, "server response?": err.response, "error message":err.message}, null, "  ")}`
+                                     errorDetails: "Error Details: "
                                     }
-            this.eventEmitter.emit(this.ERROR_EVENT_NAME,  error)
+
+            // Request made and server responded with response
+            if(err.response) {
+                error.errorDetails = `${error.errorDetails}Status Code: ${err.response.status}\nResponse:${err.response.data.statusMessage}`
+            // client never received a response, or request never left
+            } else if(err.request) {
+                error.errorDetails = `${error.errorDetails} No Response`
+            } else {
+                error.errorDetails = `${error.errorDetails} Unknown Error`
+            }
+
+            this.eventEmitter.emit(this.ERROR_EVENT_NAME, error)
             this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
         })
     }
