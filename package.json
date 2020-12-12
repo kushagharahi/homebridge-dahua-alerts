@@ -1,6 +1,6 @@
 {
   "name": "homebridge-dahua-alerts",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Routes motion alerts for Dahua and Lorex camera streams to `homebridge-camera-ffmpeg`",
   "main": "dist/index.js",
   "dependencies": {
