@@ -5,7 +5,7 @@ import crypto from 'crypto'
 import tls from 'tls'
 
 tls.DEFAULT_MIN_VERSION = 'TLSv1';
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
 
 class DahuaEvents {
     //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
@@ -37,7 +37,6 @@ class DahuaEvents {
             timeout: 30000, //30s
             rejectUnauthorized: false
         })
-
         const axiosRequestConfig: AxiosRequestConfig ={
             url: `https://${host}${this.EVENTS_URI}`,
             httpAgent: keepAliveAgent, 
@@ -134,10 +133,10 @@ class DahuaEvents {
         let action = ""
         let index = ""
         try {
-                let res = data.split('\n')
-                let alarm = res[3].split(';')
-                action = alarm[1].substr(7)
-                index = alarm[2].substr(6)
+            let res = data.split('\n')
+            let alarm = res[3].split(';')
+            action = alarm[1].substr(7)
+            index = alarm[2].substr(6)
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
         }
