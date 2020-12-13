@@ -61,7 +61,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			if (action === 'Stop')	{
 				this.log.debug('Video Motion Ended on', index, cameraName)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
-					this.log.info(`Reset motion for  ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
+					this.log.info(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch(err => {
 					this.log.error('Error when posting reset video motion to homebridge-camera-ffmpeg, received', err.data)
 				})
