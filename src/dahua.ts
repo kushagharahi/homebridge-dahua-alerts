@@ -101,7 +101,7 @@ class DahuaEvents {
                     }
                 }
                 error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
-            // as able to make a request, but for some reason, it didn't see a response
+            // client never received a response, or request never left
             } else if(err.request) {
                 error.errorDetails = `${error.errorDetails} Didn't get a response from the NVR - ${err.message}`
             } else {
