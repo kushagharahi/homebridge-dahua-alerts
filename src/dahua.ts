@@ -130,32 +130,14 @@ class DahuaEvents {
             Content-Type: text/plain
             Content-Length:36
             Code=VideoMotion;action=Stop;index=0
-
-            or
-
-            {
-                topic: "VideoMotion/7/Start",
-                payload: "Start",
-                index: "7"
-                code: "VideoMotion",
-                _msgid: "e2a19ebd.fe23f2"
-            }
          */
         let action = ""
         let index = ""
         try {
-            if(data.startsWith("{", 0)) {
-                let alarm = JSON.parse(data)
-                if(alarm.action && alarm.index) {
-                   action = alarm.action
-                   index = alarm.index
-                }
-            } else {
                 let res = data.split('\n')
                 let alarm = res[3].split(';')
                 action = alarm[1].substr(7)
                 index = alarm[2].substr(6)
-            }
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
         }
