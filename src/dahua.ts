@@ -129,14 +129,30 @@ class DahuaEvents {
             Content-Type: text/plain
             Content-Length:36
             Code=VideoMotion;action=Stop;index=0
+
+            ---or---
+
+            --myboundary
+
+            Content-Type: text/plain
+
+            Content-Length:77
+
+            Code=VideoMotion;action=Stop;index=5;data={
+            "SmartMotionEnable" : false
+            }
          */
         let action = ""
         let index = ""
         try {
-            let res = data.split('\n')
-            let alarm = res[3].split(';')
-            action = alarm[1].substr(7)
-            index = alarm[2].substr(6)
+            let eventSplitByLine = data.split('\n')
+            eventSplitByLine.forEach(event => {
+                if(event.includes(';')) {
+                    let alarm = event.split(';')
+                    action = alarm[1].substr(7)
+                    index = alarm[2].substr(6)
+                }
+            })
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
         }
