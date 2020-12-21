@@ -5,7 +5,7 @@ import {
 	PlatformConfig
 } from 'homebridge'
 import { DahuaCameraConfig, CameraConfig } from './configTypes';
-import axios, {} from 'axios';
+import axios, { AxiosError } from 'axios';
 import { DahuaError, DahuaEvents } from './dahua'
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
@@ -51,19 +51,33 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		let cameraName = this.cameras.get(Number(index))
 		if(cameraName) {
 			if (action === 'Start') {
-				this.log.debug('Video Motion Detected on', index, cameraName)
+				this.log.debug(`Video Motion Detected on index: ${index}, mapped to camera ${cameraName}`)
 				axios.post(this.motionUrl(cameraName)).then(res => {
 					this.log.info(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
-				}).catch(err => {
-					this.log.error('Error when posting video motion to homebridge-camera-ffmpeg, received', err.data)
+				}).catch((err: AxiosError) => {
+					let msg = 'Error when posting video motion to homebridge-camera-ffmpeg'
+					if(err.response) {
+						this.log.error(`${msg} - Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`)
+					} else if(err.request) {
+						this.log.error(`${msg} - didn't get a response from homebridge-camera-ffmpeg - ${err.message}`)
+					} else {
+						this.log.error(`${msg}`)
+					}
 				})
 			}
 			if (action === 'Stop')	{
-				this.log.debug('Video Motion Ended on', index, cameraName)
+				this.log.debug(`Video Motion Ended on index: ${index}, mapped to camera ${cameraName}`)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
-					this.log.info(`Reset motion for  ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
-				}).catch(err => {
-					this.log.error('Error when posting reset video motion to homebridge-camera-ffmpeg, received', err.data)
+					this.log.info(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
+				}).catch((err: AxiosError) => {
+					let msg = 'Error when posting reset video motion to homebridge-camera-ffmpeg'
+					if(err.response) {
+						this.log.error(`${msg} - Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`)
+					} else if(err.request) {
+						this.log.error(`${msg} - didn't get a response from homebridge-camera-ffmpeg - ${err.message}`)
+					} else {
+						this.log.error(`${msg}`)
+					}
 				})
 			}
 		}

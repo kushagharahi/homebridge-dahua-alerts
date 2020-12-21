@@ -1,7 +1,11 @@
 import Axios, {AxiosBasicCredentials, AxiosResponse, AxiosError, AxiosRequestConfig} from 'axios'
-import { Agent } from 'http'
+import { Agent } from 'https'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
+import tls from 'tls'
+
+tls.DEFAULT_MIN_VERSION = 'TLSv1';
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
 
 class DahuaEvents {
     //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
@@ -30,11 +34,11 @@ class DahuaEvents {
             keepAliveMsecs: 1000,
             maxSockets: 1,
             maxFreeSockets: 0,
-            timeout: 30000 //30s
+            timeout: 30000, //30s
+            rejectUnauthorized: false
         })
-
         const axiosRequestConfig: AxiosRequestConfig ={
-            url: `http://${host}${this.EVENTS_URI}`,
+            url: `https://${host}${this.EVENTS_URI}`,
             httpAgent: keepAliveAgent, 
             auth: auth,
             headers: this.HEADERS,
@@ -99,9 +103,9 @@ class DahuaEvents {
                 error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
             // client never received a response, or request never left
             } else if(err.request) {
-                error.errorDetails = `${error.errorDetails} No Response`
+                error.errorDetails = `${error.errorDetails} Didn't get a response from the NVR - ${err.message}`
             } else {
-                error.errorDetails = `${error.errorDetails} Unknown Error`
+                error.errorDetails = `${error.errorDetails} ${err.message}`
             }
 
             this.eventEmitter.emit(this.ERROR_EVENT_NAME, error)
@@ -126,31 +130,29 @@ class DahuaEvents {
             Content-Length:36
             Code=VideoMotion;action=Stop;index=0
 
-            or
+            ---or---
 
-            {
-                topic: "VideoMotion/7/Start",
-                payload: "Start",
-                index: "7"
-                code: "VideoMotion",
-                _msgid: "e2a19ebd.fe23f2"
+            --myboundary
+
+            Content-Type: text/plain
+
+            Content-Length:77
+
+            Code=VideoMotion;action=Stop;index=5;data={
+            "SmartMotionEnable" : false
             }
          */
         let action = ""
         let index = ""
         try {
-            if(data.startsWith("{", 0)) {
-                let alarm = JSON.parse(data)
-                if(alarm.action && alarm.index) {
-                   action = alarm.action
-                   index = alarm.index
+            let eventSplitByLine = data.split('\n')
+            eventSplitByLine.forEach(event => {
+                if(event.includes(';')) {
+                    let alarm = event.split(';')
+                    action = alarm[1].substr(7)
+                    index = alarm[2].substr(6)
                 }
-            } else {
-                let res = data.split('\n')
-                let alarm = res[3].split(';')
-                action = alarm[1].substr(7)
-                index = alarm[2].substr(6)
-            }
+            })
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
         }
