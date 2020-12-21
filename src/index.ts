@@ -84,11 +84,11 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	}
 
 	private motionUrl = (cameraName: string): string => {
-		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion?${encodeURIComponent(cameraName)}`)
+		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion?${cameraName}`)
 	}
 
 	private resetMotionUrl = (cameraName: string): string => {
-		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${encodeURIComponent(cameraName)}`)
+		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${cameraName}`)
 	}
 
 	private isInvalidConfig = (config: DahuaCameraConfig): boolean => {
