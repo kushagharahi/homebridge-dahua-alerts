@@ -9,4 +9,7 @@ export type DahuaCameraConfig = {
 export type CameraConfig = {
   index:      number
   cameraName: string
+  altHost:    string
+  altUser:    string
+  altPass:   string
 }

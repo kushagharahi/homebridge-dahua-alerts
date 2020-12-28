@@ -3,28 +3,28 @@
     "pluginType": "platform",
     "singular": true,
     "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
-    "footerDisplay": "Raise [Issues](https://github.com/kushagharahi/homebridge-dahua-alerts/issues) or submit [Pull Requests](https://github.com/kushagharahi/homebridge-dahua-alerts/pulls) on [Project Page](https://github.com/kushagharahi/homebridge-dahua-alerts).",
+    "footerDisplay": "Raise [Issues](https://github.com/kushagharahi/homebridge-dahua-alerts/issues) or submit [Pull Requests](https://github.com/kushagharahi/homebridge-dahua-alerts/pulls) on the [Project Page](https://github.com/kushagharahi/homebridge-dahua-alerts).\nIf you like this plugin, I'd greatly appreciate if you [starred it on GitHub](https://github.com/kushagharahi/homebridge-dahua-alerts/stargazers)",
     "schema": {
         "type": "object",
         "properties": {
             "host": {
                 "title": "host",
                 "type": "string",
-                "required": true,
+                "required": false,
                 "placeholder": "127.0.0.1",
                 "description": "Host of your Dahua NVR"
             },
 			"user": {
 				"title": "user",
                 "type": "string",
-                "required": true,
+                "required": false,
 				"placeholder": "admin",
 				"description": "Username of your Dahua NVR"
             },
             "pass": {
 				"title": "pass",
                 "type": "string",
-                "required": true,
+                "required": false,
 				"placeholder": "000000",
 				"description": "Password of your Dahua NVR"
             },
@@ -49,13 +49,34 @@
                             "type": "number",
                             "required": true,
                             "placeholder":"0",
-                			"description": "Index of your camera on your NVR. Generally you take X from CAM X and subtract 1. So for CAM 1, the index would be 0"
+                			"description": "Index of your camera. From the camera stream you take X from CAM X and subtract 1. So for CAM 1, the index would be 0"
                         },
                         "cameraName": {
                             "title": "Camera Name",
                             "type": "string",
                             "required": true,
                 			"description": "Camera name you set in homebridge-camera-ffmpeg"
+                        },
+                        "altHost": {
+                            "title": "host",
+                            "type": "string",
+                            "required": false,
+                            "placeholder": "127.0.0.1",
+                            "description": "Host of your Dahua standalone camera\nThis field is required if this camera does not share an IP/host with any others."
+                        },
+                        "altUser": {
+                            "title": "user",
+                            "type": "string",
+                            "required": false,
+                            "placeholder": "admin",
+                            "description": "Username of your Dahua standalone camera\nThis field is required if this camera does not share an IP/host with any others."
+                        },
+                        "altPass": {
+                            "title": "pass",
+                            "type": "string",
+                            "required": false,
+                            "placeholder": "000000",
+                            "description": "Password of your Dahua standalone camera\nThis field is required if this camera does not share an IP/host with any others."
                         }
                     }
                 }
