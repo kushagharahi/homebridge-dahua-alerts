@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 import crypto from 'crypto'
 import tls from 'tls'
 
-tls.DEFAULT_MIN_VERSION = 'TLSv1';
+tls.DEFAULT_MIN_VERSION = 'TLSv1'
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
 
 class DahuaEvents {
