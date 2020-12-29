@@ -3,7 +3,7 @@
     "pluginType": "platform",
     "singular": true,
     "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
-    "footerDisplay": "Raise [Issues](https://github.com/kushagharahi/homebridge-dahua-alerts/issues) or submit [Pull Requests](https://github.com/kushagharahi/homebridge-dahua-alerts/pulls) on the [Project Page](https://github.com/kushagharahi/homebridge-dahua-alerts).\nIf you like this plugin, I'd greatly appreciate if you [starred it on GitHub](https://github.com/kushagharahi/homebridge-dahua-alerts/stargazers)",
+    "footerDisplay": "Alerts not working? Raise an [Issue](https://github.com/kushagharahi/homebridge-dahua-alerts/issues)!\n[⭐Star⭐ Project on GitHub](https://github.com/kushagharahi/homebridge-dahua-alerts/stargazers)",
     "schema": {
         "type": "object",
         "properties": {
@@ -12,21 +12,21 @@
                 "type": "string",
                 "required": false,
                 "placeholder": "127.0.0.1",
-                "description": "Host of your Dahua NVR"
+                "description": "Host of your Dahua NVR - Required if not overritten in camera(s)"
             },
 			"user": {
 				"title": "user",
                 "type": "string",
                 "required": false,
 				"placeholder": "admin",
-				"description": "Username of your Dahua NVR"
+				"description": "Username of your Dahua NVR - Required if not overritten in camera(s)"
             },
             "pass": {
 				"title": "pass",
                 "type": "string",
                 "required": false,
 				"placeholder": "000000",
-				"description": "Password of your Dahua NVR"
+				"description": "Password of your Dahua NVR - Required if not overritten in camera(s)"
             },
             "homebridgeCameraFfmpegHttpPort": {
 				"title": "homebridge-camera-ffmpeg HTTP port",
@@ -57,26 +57,34 @@
                             "required": true,
                 			"description": "Camera name you set in homebridge-camera-ffmpeg"
                         },
-                        "altHost": {
-                            "title": "host",
-                            "type": "string",
+                        "cameraCredentials": {
+                            "title": "Override Camera Connection Credentials",
+                            "type": "object",
                             "required": false,
-                            "placeholder": "127.0.0.1",
-                            "description": "Host of your Dahua standalone camera\nThis field is required if this camera does not share an IP/host with any others."
-                        },
-                        "altUser": {
-                            "title": "user",
-                            "type": "string",
-                            "required": false,
-                            "placeholder": "admin",
-                            "description": "Username of your Dahua standalone camera\nThis field is required if this camera does not share an IP/host with any others."
-                        },
-                        "altPass": {
-                            "title": "pass",
-                            "type": "string",
-                            "required": false,
-                            "placeholder": "000000",
-                            "description": "Password of your Dahua standalone camera\nThis field is required if this camera does not share an IP/host with any others."
+                            "description": "Required if using a standalone camera (without NVR) and/or on a different host/user/pass than the ones (un)defined at the top level",
+                            "items": {
+                                "host": {
+                                    "title": "host",
+                                    "type": "string",
+                                    "required": true,
+                                    "placeholder": "127.0.0.1",
+                                    "description": "Host of your Dahua camera"
+                                },
+                                "user": {
+                                    "title": "user",
+                                    "type": "string",
+                                    "required": true,
+                                    "placeholder": "admin",
+                                    "description": "Username of your Dahua camera"
+                                },
+                                "pass": {
+                                    "title": "pass",
+                                    "type": "string",
+                                    "required": true,
+                                    "placeholder": "000000",
+                                    "description": "Password of your Dahua camera"
+                                }
+                            }
                         }
                     }
                 }
