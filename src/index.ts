@@ -4,7 +4,7 @@ import {
 	Logging,
 	PlatformConfig
 } from 'homebridge'
-import { DahuaCameraConfig, CameraConfig } from './configTypes'
+import { DahuaCameraConfig, CameraConfig, CameraCredentials } from './configTypes'
 import axios, { AxiosError } from 'axios'
 import { DahuaError, DahuaEvents } from './dahua'
 
@@ -17,7 +17,7 @@ export = (api: API) => {
 
 class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging
-	private readonly config: DahuaCameraConfig
+	private readonly config: DahuaCameraConfig 
 	private cameras: Map<number, string>
 
 	constructor(log: Logging, config: PlatformConfig) {
@@ -26,7 +26,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		this.cameras = new Map()
 		
 		if(this.isInvalidConfig(this.config)) {
-			this.log.error('Errors above, doing nothing')
+			this.log.error('Errors above, shutting plugin down')
 			return
 		} else {
 			this.config.cameras.forEach((camera: CameraConfig) => {
@@ -34,16 +34,27 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			})
 
 			this.log.info("Cameras", this.cameras)
-
-			let events: DahuaEvents = new DahuaEvents(this.config.host, this.config.user, this.config.pass)
-
-			events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
-			events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data: DahuaError) => { 
-				this.log.error(`${data.error} (for more info enable debug logging)`)
-				this.log.debug(`${data.errorDetails}`)
+			let uniqueHosts = new Map<string, CameraCredentials>()
+			if(config.host) {
+				uniqueHosts.set(config.host, {host: config.host, user: config.user, pass: config.pass} as CameraCredentials)
+			}
+			this.config.cameras.forEach(camera => {
+				if(camera.cameraCredentials) {
+					uniqueHosts.set(camera.cameraCredentials.host, camera.cameraCredentials)
+				}
 			})
-			events.getEventEmitter().on(events.DEBUG_EVENT_NAME, (data) => this.log.debug(data))
-			events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
+			uniqueHosts.forEach(host => {
+				this.log.info(`${host.host} ${host.user} ${host.pass}`)
+				let events: DahuaEvents = new DahuaEvents(host.host, host.user, host.pass)
+		
+				events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
+				events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data: DahuaError) => { 
+					this.log.error(`${data.error} (for more info enable debug logging)`)
+					this.log.debug(`${data.errorDetails}`)
+				})
+				events.getEventEmitter().on(events.DEBUG_EVENT_NAME, (data) => this.log.debug(data))
+				events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
+			})
 		}
 	}
 
@@ -93,23 +104,42 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 
 	private isInvalidConfig = (config: DahuaCameraConfig): boolean => {
 		let error = false
-		if(!config.host) {
-			this.log.error('host not set in config!')
-			error = true
-		} else if(!config.user) {
-			this.log.error('user not set in config!')
-			error = true
-		} else if(!config.pass) {
-			this.log.error('pass not set in config!')
-			error = true
-		} else if(!config.homebridgeCameraFfmpegHttpPort) {
+
+		if(!config.homebridgeCameraFfmpegHttpPort) {
 			this.log.error('homebridge-camera-ffmpeg http port not set in config!')
 			error = true
 		} else if(!config.cameras || config.cameras.length === 0) {
 			this.log.error('no cameras configured!')
 			error = true
+		} else if((config.host || config.user || config.pass) && this.invalidCameraCredentials({host: config.host, user: config.user, pass: config.pass} as CameraCredentials)) {
+			error = true
+		} else {
+			config.cameras.forEach((camera: CameraConfig) => {
+				/*if it has camera credentials and it's invalid */
+				if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
+					error = true
+					return error					
+				}
+			})
 		}
 
+		return error
+	}
+
+	private invalidCameraCredentials(config: CameraCredentials) {
+		let error = false
+		
+		if(!config.host) {
+			this.log.error('host not set!')
+			error = true
+		} else if(!config.user) {
+			this.log.error('user not set!')
+			error = true
+		} else if(!config.pass) {
+			this.log.error('pass not set!')
+			error = true
+		} 
+		
 		return error
 	}
 }
