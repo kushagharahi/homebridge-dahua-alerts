@@ -3,7 +3,7 @@
     "pluginType": "platform",
     "singular": true,
     "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
-    "footerDisplay": "Alerts not working? Raise an [Issue](https://github.com/kushagharahi/homebridge-dahua-alerts/issues)!\n[⭐Star⭐ Project on GitHub](https://github.com/kushagharahi/homebridge-dahua-alerts/stargazers)",
+    "footerDisplay": "Alerts not working? Raise an [Issue](https://github.com/kushagharahi/homebridge-dahua-alerts/issues)!<br />[⭐Star⭐ Project on GitHub](https://github.com/kushagharahi/homebridge-dahua-alerts/stargazers)",
     "schema": {
         "type": "object",
         "properties": {
@@ -58,29 +58,28 @@
                 			"description": "Camera name you set in homebridge-camera-ffmpeg"
                         },
                         "cameraCredentials": {
-                            "title": "Override Camera Connection Credentials",
+                            "title": "Override Camera Connection Credentials<br />Required if using a standalone camera (without NVR) and/or on a different host/user/pass than the ones (un)defined at the top level",
                             "type": "object",
                             "required": false,
-                            "description": "Required if using a standalone camera (without NVR) and/or on a different host/user/pass than the ones (un)defined at the top level",
-                            "items": {
+                            "properties": {
                                 "host": {
                                     "title": "host",
                                     "type": "string",
-                                    "required": true,
+                                    "required": false,
                                     "placeholder": "127.0.0.1",
                                     "description": "Host of your Dahua camera"
                                 },
                                 "user": {
                                     "title": "user",
                                     "type": "string",
-                                    "required": true,
+                                    "required": false,
                                     "placeholder": "admin",
                                     "description": "Username of your Dahua camera"
                                 },
                                 "pass": {
                                     "title": "pass",
                                     "type": "string",
-                                    "required": true,
+                                    "required": false,
                                     "placeholder": "000000",
                                     "description": "Password of your Dahua camera"
                                 }
@@ -90,5 +89,37 @@
                 }
             }
         }
-    }
+    },
+    "layout":[
+        {
+            "key": "host"
+        },
+        {
+            "key": "user"
+        },
+        {
+            "key": "pass"
+        },
+        {
+            "key": "homebridgeCameraFfmpegHttpPort"
+        },
+        {
+            "key": "cameras",
+            "items": [
+                "cameras[].index",
+                "cameras[].cameraName",
+                {
+                    "key": "cameras[].cameraCredentials",
+                    "type": "section",
+                    "expandable": true,
+                    "expanded": false,
+                    "items":[
+                        "cameras[].cameraCredentials.host",
+                        "cameras[].cameraCredentials.user",
+                        "cameras[].cameraCredentials.pass"
+                    ]
+                }
+            ]
+        }
+    ]
 }
