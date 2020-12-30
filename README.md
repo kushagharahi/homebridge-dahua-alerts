@@ -5,7 +5,7 @@
 
 Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffmpeg 
 
--- Confirmed working with: Lorex: LHV1004 DHV & Dahua: DHI-HCVR4116HS-S3, DH-XVR5116HS-X but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
+-- Confirmed working with: Lorex: LHV1004 DHV & Dahua: DHI-HCVR4116HS-S3, DH-XVR5116HS-X, DH-IPC-HDBW4631R-S but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 
 ## Installation
 1. Install Homebridge using the [official instructions](https://github.com/homebridge/homebridge/wiki).
