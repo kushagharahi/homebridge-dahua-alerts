@@ -80,7 +80,7 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
 }
 ```
 
-#### Override Camera Configuration
+#### Override Camera Connection Credentials
 This is useful if you have standalone IP Camera(s) (not going through an NVR), a mix of IP Cameras and NVR(s), or multiple NVRs.
 
 To define a host/user/pass on a camera simply add the `cameraCredentials` object. If you have a top level host/user/pass defined, this object will override it. 
