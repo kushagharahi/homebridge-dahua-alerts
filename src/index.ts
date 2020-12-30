@@ -44,7 +44,6 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 				}
 			})
 			uniqueHosts.forEach(host => {
-				this.log.info(`${host.host} ${host.user} ${host.pass}`)
 				let events: DahuaEvents = new DahuaEvents(host.host, host.user, host.pass)
 		
 				events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
