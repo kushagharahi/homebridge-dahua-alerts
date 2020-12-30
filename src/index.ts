@@ -114,11 +114,14 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			error = true
 		} else {
 			config.cameras.forEach((camera: CameraConfig) => {
+				if(!camera.cameraName || !camera.index) {
+					this.log.error('no camera name or index set!')
+				}
 				/*if it has camera credentials and it's invalid */
-				if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
+				else if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
 					error = true
 					return error					
-				}
+				} 
 			})
 		}
 
