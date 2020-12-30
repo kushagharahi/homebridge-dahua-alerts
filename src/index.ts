@@ -6,7 +6,7 @@ import {
 } from 'homebridge'
 import { DahuaCameraConfig, CameraConfig, CameraCredentials } from './configTypes'
 import axios, { AxiosError } from 'axios'
-import { DahuaError, DahuaEvents } from './dahua'
+import { DahuaError, DahuaEvents, DahuaAlarm } from './dahua'
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
 const PLATFORM_NAME = 'dahua-alerts'
@@ -18,22 +18,16 @@ export = (api: API) => {
 class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging
 	private readonly config: DahuaCameraConfig 
-	private cameras: Map<number, string>
 
 	constructor(log: Logging, config: PlatformConfig) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
-		this.cameras = new Map()
 		
 		if(this.isInvalidConfig(this.config)) {
 			this.log.error('Errors above, shutting plugin down')
 			return
 		} else {
-			this.config.cameras.forEach((camera: CameraConfig) => {
-				this.cameras.set(camera.index, camera.cameraName)
-			})
-
-			this.log.info("Cameras", this.cameras)
+			//find all uniqueHosts in config in order to only setup one "DahuaEvents" (socket) connection per unique host
 			let uniqueHosts = new Map<string, CameraCredentials>()
 			if(config.host) {
 				uniqueHosts.set(config.host, {host: config.host, user: config.user, pass: config.pass} as CameraCredentials)
@@ -57,11 +51,11 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		}
 	}
 
-	private alertMotion = (action: string, index: number) => {
-		let cameraName = this.cameras.get(Number(index))
+	private alertMotion = (dahuaAlarm: DahuaAlarm) => {
+		let cameraName = this.getCameraName(dahuaAlarm)
 		if(cameraName) {
-			if (action === 'Start') {
-				this.log.debug(`Video Motion Detected on index: ${index}, mapped to camera ${cameraName}`)
+			if (dahuaAlarm.action === 'Start') {
+				this.log.debug(`Video Motion Detected on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.motionUrl(cameraName)).then(res => {
 					this.log.info(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
@@ -74,9 +68,8 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 						this.log.error(`${msg}`)
 					}
 				})
-			}
-			if (action === 'Stop')	{
-				this.log.debug(`Video Motion Ended on index: ${index}, mapped to camera ${cameraName}`)
+			} else if (dahuaAlarm.action === 'Stop')	{
+				this.log.debug(`Video Motion Ended on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
 					this.log.info(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
@@ -101,6 +94,19 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${cameraName}`)
 	}
 
+	private getCameraName = (alarm: DahuaAlarm): (string | null)  => {
+		for(let i = 0; i < this.config.cameras.length; i++) {
+			let camera = this.config.cameras[i]
+			if(camera.index === Number(alarm.index)) {
+				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host) || 
+					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host)) {
+						return camera.cameraName
+					}
+			}
+		}
+		return null
+	}
+
 	private isInvalidConfig = (config: DahuaCameraConfig): boolean => {
 		let error = false
 
@@ -114,8 +120,10 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			error = true
 		} else {
 			config.cameras.forEach((camera: CameraConfig) => {
-				if(!camera.cameraName || !camera.index) {
+				if(!camera.cameraName || (!camera.index && camera.index !== 0)) {
 					this.log.error('no camera name or index set!')
+					error = true
+					return
 				}
 				/*if it has camera credentials and it's invalid */
 				else if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
