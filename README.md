@@ -97,6 +97,8 @@ To define a host/user/pass on a camera simply add the `cameraCredentials` object
         },
 ```
 
+* If using a standalone camera, the index will always be `0`
+
 ### Local development
 - `npm run build` to get JS output in `dist`
 
