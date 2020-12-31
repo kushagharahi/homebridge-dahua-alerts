@@ -5,7 +5,7 @@
 
 Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffmpeg 
 
--- Confirmed working with: Lorex: LHV1004 DHV & Dahua: DHI-HCVR4116HS-S3, DH-XVR5116HS-X but lots of Dahua/Lorex DVRs share this VideoMotion api.
+-- Confirmed working with: Lorex: LHV1004 DHV & Dahua: DHI-HCVR4116HS-S3, DH-XVR5116HS-X, DH-IPC-HDBW4631R-S but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 
 ## Installation
 1. Install Homebridge using the [official instructions](https://github.com/homebridge/homebridge/wiki).
@@ -15,6 +15,8 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
 5. Configure your NVR and camera settings.
 
 ## Sample config.json
+
+* Configuration for one NVR with multiple cameras
 
 ### homebridge-camera-ffmpeg
 ```
@@ -70,14 +72,32 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
             "cameraName": "Backdoor"
         }
     ],
-    "host": "192.168.1.XX",
-    "user": "admin",
-    "pass": "<snip>",
     "homebridgeCameraFfmpegHttpPort": 8088,
-    "platform": "dahua-alerts"
+    "platform": "dahua-alerts",
+    "host": "XX.XX.XX.XX",
+    "user": "admin",
+    "pass": "XX"
 }
 ```
 
+#### Override Camera Connection Credentials
+This is useful if you have standalone IP Camera(s) (not going through an NVR), a mix of IP Cameras and NVR(s), or multiple NVRs.
+
+To define a host/user/pass on a camera simply add the `cameraCredentials` object. If you have a top level host/user/pass defined, this object will override it. 
+```
+    "cameras": [
+        {
+            "index": 0,
+            "cameraName": "Driveway"
+            "cameraCredentials": {
+                    "host": "XX.XX.XX.XX",
+                    "user": "admin",
+                    "pass": "XX"
+            }
+        },
+```
+
+* If using a standalone camera, the index will always be `0`
 
 ### Local development
 - `npm run build` to get JS output in `dist`

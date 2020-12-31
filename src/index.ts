@@ -4,54 +4,58 @@ import {
 	Logging,
 	PlatformConfig
 } from 'homebridge'
-import { DahuaCameraConfig, CameraConfig } from './configTypes';
-import axios, { AxiosError } from 'axios';
-import { DahuaError, DahuaEvents } from './dahua'
+import { DahuaCameraConfig, CameraConfig, CameraCredentials } from './configTypes'
+import axios, { AxiosError } from 'axios'
+import { DahuaError, DahuaEvents, DahuaAlarm } from './dahua'
 
 const PLUGIN_NAME = 'homebridge-dahua-alerts'
-const PLATFORM_NAME = 'dahua-alerts';
+const PLATFORM_NAME = 'dahua-alerts'
 
 export = (api: API) => {
-	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, DahuaMotionAlertsPlatform);
+	api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, DahuaMotionAlertsPlatform)
 }
 
 class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging
-	private readonly config: DahuaCameraConfig
-	private cameras: Map<number, string>
+	private readonly config: DahuaCameraConfig 
 
 	constructor(log: Logging, config: PlatformConfig) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
-		this.cameras = new Map()
 		
 		if(this.isInvalidConfig(this.config)) {
-			this.log.error('Errors above, doing nothing')
+			this.log.error('Errors above, shutting plugin down')
 			return
 		} else {
-			this.config.cameras.forEach((camera: CameraConfig) => {
-				this.cameras.set(camera.index, camera.cameraName)
+			//find all uniqueHosts in config in order to only setup one "DahuaEvents" (socket) connection per unique host
+			let uniqueHosts = new Map<string, CameraCredentials>()
+			if(config.host) {
+				uniqueHosts.set(config.host, {host: config.host, user: config.user, pass: config.pass} as CameraCredentials)
+			}
+			this.config.cameras.forEach(camera => {
+				if(camera.cameraCredentials) {
+					uniqueHosts.set(camera.cameraCredentials.host, camera.cameraCredentials)
+				}
 			})
-
-			this.log.info("Cameras", this.cameras)
-
-			let events: DahuaEvents = new DahuaEvents(this.config.host, this.config.user, this.config.pass);
-
-			events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
-			events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data: DahuaError) => { 
-				this.log.error(`${data.error} (for more info enable debug logging)`)
-				this.log.debug(`${data.errorDetails}`)
+			uniqueHosts.forEach(host => {
+				let events: DahuaEvents = new DahuaEvents(host.host, host.user, host.pass)
+		
+				events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
+				events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data: DahuaError) => { 
+					this.log.error(`${data.error} (for more info enable debug logging)`)
+					this.log.debug(`${data.errorDetails}`)
+				})
+				events.getEventEmitter().on(events.DEBUG_EVENT_NAME, (data) => this.log.debug(data))
+				events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
 			})
-			events.getEventEmitter().on(events.DEBUG_EVENT_NAME, (data) => this.log.debug(data))
-			events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
 		}
 	}
 
-	private alertMotion = (action: string, index: number) => {
-		let cameraName = this.cameras.get(Number(index))
+	private alertMotion = (dahuaAlarm: DahuaAlarm) => {
+		let cameraName = this.getCameraName(dahuaAlarm)
 		if(cameraName) {
-			if (action === 'Start') {
-				this.log.debug(`Video Motion Detected on index: ${index}, mapped to camera ${cameraName}`)
+			if (dahuaAlarm.action === 'Start') {
+				this.log.debug(`Video Motion Detected on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.motionUrl(cameraName)).then(res => {
 					this.log.info(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
@@ -64,9 +68,8 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 						this.log.error(`${msg}`)
 					}
 				})
-			}
-			if (action === 'Stop')	{
-				this.log.debug(`Video Motion Ended on index: ${index}, mapped to camera ${cameraName}`)
+			} else if (dahuaAlarm.action === 'Stop')	{
+				this.log.debug(`Video Motion Ended on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
 					this.log.info(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
@@ -91,25 +94,62 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		return encodeURI(`http://localhost:${this.config.homebridgeCameraFfmpegHttpPort}/motion/reset?${cameraName}`)
 	}
 
+	private getCameraName = (alarm: DahuaAlarm): (string | null)  => {
+		for(let i = 0; i < this.config.cameras.length; i++) {
+			let camera = this.config.cameras[i]
+			if(camera.index === Number(alarm.index)) {
+				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host) || 
+					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host)) {
+						return camera.cameraName
+					}
+			}
+		}
+		return null
+	}
+
 	private isInvalidConfig = (config: DahuaCameraConfig): boolean => {
 		let error = false
-		if(!config.host) {
-			this.log.error('host not set in config!')
-			error = true
-		} else if(!config.user) {
-			this.log.error('user not set in config!')
-			error = true
-		} else if(!config.pass) {
-			this.log.error('pass not set in config!')
-			error = true
-		} else if(!config.homebridgeCameraFfmpegHttpPort) {
+
+		if(!config.homebridgeCameraFfmpegHttpPort) {
 			this.log.error('homebridge-camera-ffmpeg http port not set in config!')
 			error = true
 		} else if(!config.cameras || config.cameras.length === 0) {
 			this.log.error('no cameras configured!')
 			error = true
+		} else if((config.host || config.user || config.pass) && this.invalidCameraCredentials({host: config.host, user: config.user, pass: config.pass} as CameraCredentials)) {
+			error = true
+		} else {
+			config.cameras.forEach((camera: CameraConfig) => {
+				if(!camera.cameraName || (!camera.index && camera.index !== 0)) {
+					this.log.error('no camera name or index set!')
+					error = true
+					return
+				}
+				/*if it has camera credentials and it's invalid */
+				else if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
+					error = true
+					return error					
+				} 
+			})
 		}
 
+		return error
+	}
+
+	private invalidCameraCredentials(config: CameraCredentials) {
+		let error = false
+		
+		if(!config.host) {
+			this.log.error('host not set!')
+			error = true
+		} else if(!config.user) {
+			this.log.error('user not set!')
+			error = true
+		} else if(!config.pass) {
+			this.log.error('pass not set!')
+			error = true
+		} 
+		
 		return error
 	}
 }

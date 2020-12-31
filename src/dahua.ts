@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 import crypto from 'crypto'
 import tls from 'tls'
 
-tls.DEFAULT_MIN_VERSION = 'TLSv1';
+tls.DEFAULT_MIN_VERSION = 'TLSv1'
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
 
 class DahuaEvents {
@@ -23,8 +23,10 @@ class DahuaEvents {
     public DATA_EVENT_NAME:         string = 'data'
     public RECONNECTING_EVENT_NAME: string = 'reconnecting'
 
+    private host:                   string
 
     constructor(host: string, user: string, pass: string) {
+        this.host = host
         const auth: AxiosBasicCredentials = {
             username: user,
             password: pass
@@ -57,7 +59,7 @@ class DahuaEvents {
             res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved: ${data.toString()}`)
                 let event = this.parseEventData(data.toString())
-                this.eventEmitter.emit(this.ALARM_EVENT_NAME, event.action, event.index)
+                this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
             })
 
             res.data.socket.on(this.SOCKET_CLOSE, (close: Buffer) => {
@@ -66,8 +68,8 @@ class DahuaEvents {
             })
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
-                                     error: `Error Received`, 
-                                     errorDetails: "Error Details:"
+                                        error: `Error Received`, 
+                                        errorDetails: "Error Details:"
                                     }
 
             // Request made and server responded with response
@@ -169,4 +171,10 @@ type DahuaError = {
     errorDetails: string
 }
 
-export { DahuaEvents, DahuaError }
+type DahuaAlarm = {
+    action:       string
+    index:        string
+    host:         string
+}
+
+export { DahuaEvents, DahuaAlarm, DahuaError }
