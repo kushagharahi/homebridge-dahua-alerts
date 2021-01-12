@@ -1,6 +1,6 @@
 {
   "name": "homebridge-dahua-alerts",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Routes motion alerts for Dahua and Lorex camera streams to `homebridge-camera-ffmpeg`",
   "main": "dist/index.js",
   "dependencies": {
@@ -21,6 +21,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kushagharahi/homebridge-dahua-alerts.git"
+  },
+  "funding": {
+    "type": "buymeacoffee",
+    "url": "https://www.buymeacoffee.com/kusha"
   },
   "keywords": [
     "Dahua",

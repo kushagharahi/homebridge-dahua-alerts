@@ -2,7 +2,7 @@
     "pluginAlias": "dahua-alerts",
     "pluginType": "platform",
     "singular": true,
-    "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.",
+    "headerDisplay": "Motion alerts for dahua and lorex camera streams in `homebridge-camera-ffmpeg`.<br/>[Buy me a ☕coffee☕](https://www.buymeacoffee.com/kusha)",
     "footerDisplay": "Alerts not working? Raise an [Issue](https://github.com/kushagharahi/homebridge-dahua-alerts/issues)!<br />[⭐Star⭐ Project on GitHub](https://github.com/kushagharahi/homebridge-dahua-alerts/stargazers)",
     "schema": {
         "type": "object",
