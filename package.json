@@ -22,6 +22,10 @@
     "type": "git",
     "url": "git+https://github.com/kushagharahi/homebridge-dahua-alerts.git"
   },
+  "funding": {
+    "type": "buymeacoffee",
+    "url": "https://www.buymeacoffee.com/kusha"
+  },
   "keywords": [
     "Dahua",
     "Lorex",
