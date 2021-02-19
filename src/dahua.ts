@@ -74,11 +74,17 @@ class DahuaEvents {
 
             // Request made and server responded with response
             if(err.response) {
-                if(err.response.status === 401) {
-                    if(err.response.headers['www-authenticate']) {
-                        //digest auth, build digest auth header
-                        const authDetails = err.response.headers['www-authenticate'].split(', ').map(v => v.split('='))
-
+                if(err.response.status === 401 && err.response.headers['www-authenticate']) {
+                    try {
+                        /* digest auth, build digest auth header
+                         * The two examples I've seen from these cameras are:
+                         * Digest realm="Login to ND021811019863",qop="auth",nonce="211955164",opaque="9a206a55e922ee7900769ec61ae49bf0c1f30242"
+                         * or: 
+                         * Digest realm="Login to ND021811019863", qop="auth", nonce="211955164", opaque="9a206a55e922ee7900769ec61ae49bf0c1f30242"
+                         * The split() regex splits on the commas eliminating any potential white-spaces before and after the comma (s*)
+                         */
+                        const authDetails = err.response.headers['www-authenticate'].split(/\s*,\s*/).map(v => v.split('='))
+                        
                         ++count
                         const nonceCount = ('00000000' + count).slice(-8)
                         const cnonce = crypto.randomBytes(24).toString('hex')
@@ -100,9 +106,12 @@ class DahuaEvents {
 
                         this.connect(axiosRequestConfig, count)
                         return
+                    } catch (e) {
+                        error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
+                } else {
+                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
                 }
-                error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
             // client never received a response, or request never left
             } else if(err.request) {
                 error.errorDetails = `${error.errorDetails} Didn't get a response from the NVR - ${err.message}`
