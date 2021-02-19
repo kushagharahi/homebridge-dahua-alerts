@@ -24,7 +24,7 @@ Like this plugin? -> [Buy me a ☕coffee☕](https://www.buymeacoffee.com/kusha)
 3. Configure your RTSP streams in `homebridge-camera-ffmpeg` and configure [`Http-based Automation`](https://sunoo.github.io/homebridge-camera-ffmpeg/automation/http.html) for the camera streams you want motion detection. Make sure to set `motionTimeout` to 0 and set HTTP Localhost Only to true.
 4. Install [`homebridge-dahua-alerts`](https://www.npmjs.com/package/homebridge-dahua-alerts).
 5. Configure your NVR and camera settings.
-    - Ensure you have enabled `https` or enabled port 443 on your device if you're getting `ECONNREFUSED` in the debug logs. Not required by all.
+    - Ensure you have enabled `https` or port 443 on your device if you're getting `ECONNREFUSED` in the debug logs. Not required by all.
 
 ## Sample config.json
 
