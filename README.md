@@ -14,6 +14,7 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
 | - | DH-IPC-HDBW4631R-S | - | 
 | DHI-NVR4104HS-P-4Ks2 | - | - |
 | - | - | Lorex NR818 |
+
 but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 
 Like this plugin? -> [Buy me a ☕coffee☕](https://www.buymeacoffee.com/kusha)
