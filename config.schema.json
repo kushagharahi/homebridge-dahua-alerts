@@ -35,6 +35,12 @@
 				"placeholder": "8080",
 				"description": "homebridge-camera-ffmpeg HTTP port to accept motion notifications"
 			},
+            "useHttp": {
+                "title": "Use Http",
+                "type": "boolean",
+                "required": false,
+                "description": "Use HTTP instead of HTTPs by default."
+            },
             "cameras": {
                 "title": "Cameras",
                 "type": "array",
@@ -82,6 +88,12 @@
                                     "required": false,
                                     "placeholder": "000000",
                                     "description": "Password of your Dahua camera"
+                                },
+                                "useHttp": {
+                                    "title": "Use Http",
+                                    "type": "boolean",
+                                    "required": false,
+                                    "description": "Use HTTP instead of HTTPs by default."
                                 }
                             }
                         }
@@ -104,6 +116,9 @@
             "key": "homebridgeCameraFfmpegHttpPort"
         },
         {
+            "key": "useHttp"
+        },
+        {
             "key": "cameras",
             "items": [
                 "cameras[].index",
@@ -116,7 +131,8 @@
                     "items":[
                         "cameras[].cameraCredentials.host",
                         "cameras[].cameraCredentials.user",
-                        "cameras[].cameraCredentials.pass"
+                        "cameras[].cameraCredentials.pass",
+                        "cameras[].cameraCredentials.useHttp"
                     ]
                 }
             ]

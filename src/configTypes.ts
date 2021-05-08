@@ -3,6 +3,7 @@ export type DahuaCameraConfig = {
   user:                           string
   pass:                           string
   homebridgeCameraFfmpegHttpPort: number
+  useHttp:                        boolean
   cameras:                        Array<CameraConfig>
 }
   
@@ -16,4 +17,5 @@ export type CameraCredentials = {
   host:                           string
   user:                           string
   pass:                           string
+  useHttp:                        boolean
 }
