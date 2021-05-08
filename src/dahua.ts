@@ -1,5 +1,6 @@
 import Axios, {AxiosBasicCredentials, AxiosResponse, AxiosError, AxiosRequestConfig} from 'axios'
-import { Agent } from 'https'
+import { Agent as HttpsAgent } from 'https'
+import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
 import tls from 'tls'
@@ -15,6 +16,15 @@ class DahuaEvents {
     private SOCKET_CLOSE:           string = 'close'
     private RECONNECT_INTERNAL_MS:  number = 10000
 
+    private AGENT_SETTINGS = {
+        keepAlive: true,
+        keepAliveMsecs: 1000,
+        maxSockets: 1,
+        maxFreeSockets: 0,
+        timeout: 30000, //30s
+        rejectUnauthorized: false
+    }
+
     private eventEmitter:           EventEmitter
      
     public ALARM_EVENT_NAME:        string = 'alarm'
@@ -25,22 +35,38 @@ class DahuaEvents {
 
     private host:                   string
 
-    constructor(host: string, user: string, pass: string) {
+    constructor(host: string, user: string, pass: string, useHttp: boolean) {
         this.host = host
         const auth: AxiosBasicCredentials = {
             username: user,
             password: pass
         }
-        const keepAliveAgent: Agent = new Agent({
-            keepAlive: true,
-            keepAliveMsecs: 1000,
-            maxSockets: 1,
-            maxFreeSockets: 0,
-            timeout: 30000, //30s
-            rejectUnauthorized: false
-        })
+
+        let keepAliveAgent;
+
+        if(useHttp) {
+            keepAliveAgent = new HttpAgent({
+                keepAlive: this.AGENT_SETTINGS.keepAlive,
+                keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
+                maxSockets: this.AGENT_SETTINGS.maxSockets,
+                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+                timeout: this.AGENT_SETTINGS.timeout,
+            }) 
+        } else {
+            keepAliveAgent = new HttpsAgent({
+                keepAlive: this.AGENT_SETTINGS.keepAlive,
+                keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
+                maxSockets: this.AGENT_SETTINGS.maxSockets,
+                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+                timeout: this.AGENT_SETTINGS.timeout,
+                rejectUnauthorized: this.AGENT_SETTINGS.rejectUnauthorized
+            })
+        }
+        
+
+        let useSSL = useHttp ? 'http': 'https'
         const axiosRequestConfig: AxiosRequestConfig ={
-            url: `https://${host}${this.EVENTS_URI}`,
+            url: `${useSSL}://${host}${this.EVENTS_URI}`,
             httpAgent: keepAliveAgent, 
             auth: auth,
             headers: this.HEADERS,
