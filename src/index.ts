@@ -31,27 +31,25 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			let uniqueHosts = new Map<string, DahuaEventsConfig>()
 			if(config.host) {
 				uniqueHosts.set(config.host, {
-					events: "", 
+					events: new Set<string>(), 
 					server: {host: config.host, user: config.user, pass: config.pass, useHttp: config.useHttp} as CameraCredentials
 				} as DahuaEventsConfig)
 			}
 			this.config.cameras.forEach(camera => {
-				let hostConfig
+				let hostConfig: DahuaEventsConfig
 
 				// group hosts
 				if(camera.cameraCredentials && !uniqueHosts.has(camera.cameraCredentials.host)) {
-					hostConfig = {events: "", server: camera.cameraCredentials} as DahuaEventsConfig
+					hostConfig = {events: new Set<string>(), server: camera.cameraCredentials} as DahuaEventsConfig
 					uniqueHosts.set(camera.cameraCredentials.host, hostConfig)
 				} else if (camera.cameraCredentials) {
-					hostConfig = uniqueHosts.get(camera.cameraCredentials.host);
+					hostConfig = uniqueHosts.get(camera.cameraCredentials.host)!;
 				} else {
 					hostConfig = uniqueHosts.get(config.host)!;
 				}
 
 				// group subscribed events
-				if (!hostConfig.events.includes(camera.triggerEventType)) {
-					hostConfig.events = `"${hostConfig.events}","${camera.triggerEventType}"`;
-				}
+				hostConfig.events.add(camera.triggerEventType);
 			})
 			uniqueHosts.forEach(hostConfig => {
 				let events: DahuaEvents = new DahuaEvents(hostConfig.server.host, hostConfig.server.user, 
@@ -175,6 +173,6 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 }
 
 type DahuaEventsConfig = {
-    events:       string
+    events:       Set<string>
     server:       CameraCredentials
 }

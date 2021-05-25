@@ -33,11 +33,11 @@ class DahuaEvents {
     private host:                   string
     private eventsWatchUri:         string
 
-    constructor(host: string, user: string, pass: string, useHttp: boolean, events: string) {
+    constructor(host: string, user: string, pass: string, useHttp: boolean, events: Set<string>) {
         this.host = host;
         //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind]
         //See more https://github.com/SaWey/home-assistant-dahua-event
-        this.eventsWatchUri = `/cgi-bin/eventManager.cgi?action=attach&codes=["${events}"]`;
+        this.eventsWatchUri = `/cgi-bin/eventManager.cgi?action=attach&codes=[${Array.from(events).join(",")}]`;
         this.eventEmitter = new EventEmitter()
 
         const auth: AxiosBasicCredentials = {
