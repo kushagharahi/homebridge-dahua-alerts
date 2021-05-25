@@ -32,7 +32,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			if(config.host) {
 				uniqueHosts.set(config.host, {
 					events: "", 
-					server: {host: config.host, user: config.user, pass: config.pass} as CameraCredentials
+					server: {host: config.host, user: config.user, pass: config.pass, useHttp: config.useHttp} as CameraCredentials
 				} as DahuaEventsConfig)
 			}
 			this.config.cameras.forEach(camera => {
