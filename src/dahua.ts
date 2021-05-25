@@ -77,7 +77,6 @@ class DahuaEvents {
             responseType: 'stream',
             timeout: 1200000 // 20min
         }
-        this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Request config set: ${axiosRequestConfig.url}`)
 
         this.connect(axiosRequestConfig, 0)
     }
@@ -139,7 +138,7 @@ class DahuaEvents {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
                 } else {
-                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
+                    error.errorDetails = `${error.errorDetails} Uri: ${err.config.url} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
                 }
             // client never received a response, or request never left
             } else if(err.request) {
