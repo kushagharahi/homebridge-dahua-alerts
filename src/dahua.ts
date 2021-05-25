@@ -75,7 +75,7 @@ class DahuaEvents {
             headers: this.HEADERS,
             method: 'GET',
             responseType: 'stream',
-            timeout: 30000 //30s
+            timeout: 1200000 //20min
         }
 
         this.connect(axiosRequestConfig, 0)
