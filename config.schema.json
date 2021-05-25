@@ -63,6 +63,34 @@
                             "required": true,
                 			"description": "Camera name you set in homebridge-camera-ffmpeg"
                         },
+                        "triggerEventType": {
+                            "title": "Trigger Event Type",
+                			"description": "Motion or IVS events to alert on",
+                            "type": ["string"],
+                            "oneOf": [{
+                                  "title": "Motion detect (standard)",
+                                  "const": "VideoMotion"
+                                },
+                                {
+                                  "title": "Video Loss",
+                                  "const": "VideoLoss"
+                                },
+                                {
+                                  "title": "Video Blind",
+                                  "const": "VideoBlind"
+                                },
+                                {
+                                  "title": "Tripwire (IVS)",
+                                  "const": "CrossLineDetection"
+                                },
+                                {
+                                  "title": "Intrusion (IVS)",
+                                  "const": "CrossRegionDetection"
+                                }
+                            ],
+                            "default": "VideoMotion",
+                            "required": true
+                        },
                         "cameraCredentials": {
                             "title": "Override Camera Connection Credentials<br />Required if using a standalone camera (without NVR) and/or on a different host/user/pass than the ones (un)defined at the top level",
                             "type": "object",

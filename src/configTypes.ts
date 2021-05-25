@@ -10,6 +10,7 @@ export type DahuaCameraConfig = {
 export type CameraConfig = {
   index:                          number
   cameraName:                     string
+  triggerEventType:               string
   cameraCredentials:              CameraCredentials
 }
 

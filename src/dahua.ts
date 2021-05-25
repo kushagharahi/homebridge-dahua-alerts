@@ -9,8 +9,6 @@ tls.DEFAULT_MIN_VERSION = 'TLSv1'
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
 
 class DahuaEvents {
-    //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
-    private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
     private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
     private SOCKET_CLOSE:           string = 'close'
@@ -24,8 +22,6 @@ class DahuaEvents {
         timeout: 30000, //30s
         rejectUnauthorized: false
     }
-
-    private eventEmitter:           EventEmitter
      
     public ALARM_EVENT_NAME:        string = 'alarm'
     public DEBUG_EVENT_NAME:        string = 'alarm_payload'
@@ -33,10 +29,17 @@ class DahuaEvents {
     public DATA_EVENT_NAME:         string = 'data'
     public RECONNECTING_EVENT_NAME: string = 'reconnecting'
 
+    private eventEmitter:           EventEmitter
     private host:                   string
+    private eventsWatchUri:         string
 
-    constructor(host: string, user: string, pass: string, useHttp: boolean) {
-        this.host = host
+    constructor(host: string, user: string, pass: string, useHttp: boolean, events: string) {
+        this.host = host;
+        //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind]
+        //See more https://github.com/SaWey/home-assistant-dahua-event
+        this.eventsWatchUri = `/cgi-bin/eventManager.cgi?action=attach&codes=["${events}"]`;
+        this.eventEmitter = new EventEmitter()
+
         const auth: AxiosBasicCredentials = {
             username: user,
             password: pass
@@ -66,7 +69,7 @@ class DahuaEvents {
 
         let useSSL = useHttp ? 'http': 'https'
         const axiosRequestConfig: AxiosRequestConfig ={
-            url: `${useSSL}://${host}${this.EVENTS_URI}`,
+            url: `${useSSL}://${host}${this.eventsWatchUri}`,
             httpAgent: keepAliveAgent, 
             auth: auth,
             headers: this.HEADERS,
@@ -74,8 +77,7 @@ class DahuaEvents {
             responseType: 'stream',
             timeout: 30000
         }
-
-        this.eventEmitter = new EventEmitter()
+        this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Request config set: ${axiosRequestConfig}`)
 
         this.connect(axiosRequestConfig, 0)
     }
@@ -85,7 +87,8 @@ class DahuaEvents {
             res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved: ${data.toString()}`)
                 let event = this.parseEventData(data.toString())
-                this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
+                this.eventEmitter.emit(this.ALARM_EVENT_NAME, 
+                    {action: event.action, index: event.index, eventType: event.eventType, host: this.host} as DahuaAlarm)
             })
 
             res.data.socket.on(this.SOCKET_CLOSE, (close: Buffer) => {
@@ -121,11 +124,11 @@ class DahuaEvents {
                         const md5 = str => crypto.createHash('md5').update(str).digest('hex')
                 
                         const HA1 = md5(`${axiosRequestConfig.auth?.username}:${realm}:${axiosRequestConfig.auth?.password}`)
-                        const HA2 = md5(`GET:${this.EVENTS_URI}`);
+                        const HA2 = md5(`GET:${this.eventsWatchUri}`);
                         const response = md5(`${HA1}:${nonce}:${nonceCount}:${cnonce}:auth:${HA2}`)
                 
                         this.HEADERS['authorization'] = `Digest username="${axiosRequestConfig.auth?.username}",realm="${realm}",` +
-                        `nonce="${nonce}",uri="${this.EVENTS_URI}",qop="auth",algorithm="MD5",` +
+                        `nonce="${nonce}",uri="${this.eventsWatchUri}",qop="auth",algorithm="MD5",` +
                         `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`
                         
                         axiosRequestConfig.headers = this.HEADERS
@@ -159,7 +162,7 @@ class DahuaEvents {
         }, reconnection_interval_ms)
     }
 
-    private parseEventData = (data: string) : {action: string, index: string} => {
+    private parseEventData = (data: string) : {action: string, index: string, eventType: string} => {
         /** Sample data:
          
             myboundary
@@ -181,11 +184,13 @@ class DahuaEvents {
          */
         let action = ""
         let index = ""
+        let eventType = ""
         try {
             let eventSplitByLine = data.split('\n')
             eventSplitByLine.forEach(event => {
                 if(event.includes(';')) {
                     let alarm = event.split(';')
+                    eventType = alarm[0].substr(5)
                     action = alarm[1].substr(7)
                     index = alarm[2].substr(6)
                 }
@@ -193,7 +198,7 @@ class DahuaEvents {
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
         }
-        return { action: action, index: index }
+        return { action: action, index: index, eventType: eventType }
     }
 
     public getEventEmitter = (): EventEmitter => {
@@ -207,6 +212,7 @@ type DahuaError = {
 }
 
 type DahuaAlarm = {
+    eventType:    string
     action:       string
     index:        string
     host:         string

@@ -28,17 +28,34 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			return
 		} else {
 			//find all uniqueHosts in config in order to only setup one "DahuaEvents" (socket) connection per unique host
-			let uniqueHosts = new Map<string, CameraCredentials>()
+			let uniqueHosts = new Map<string, DahuaEventsConfig>()
 			if(config.host) {
-				uniqueHosts.set(config.host, {host: config.host, user: config.user, pass: config.pass} as CameraCredentials)
+				uniqueHosts.set(config.host, {
+					events: "", 
+					server: {host: config.host, user: config.user, pass: config.pass} as CameraCredentials
+				} as DahuaEventsConfig)
 			}
 			this.config.cameras.forEach(camera => {
-				if(camera.cameraCredentials) {
-					uniqueHosts.set(camera.cameraCredentials.host, camera.cameraCredentials)
+				let hostConfig
+
+				// group hosts
+				if(camera.cameraCredentials && !uniqueHosts.has(camera.cameraCredentials.host)) {
+					hostConfig = {events: "", server: camera.cameraCredentials} as DahuaEventsConfig
+					uniqueHosts.set(camera.cameraCredentials.host, hostConfig)
+				} else if (camera.cameraCredentials) {
+					hostConfig = uniqueHosts.get(camera.cameraCredentials.host);
+				} else {
+					hostConfig = uniqueHosts.get(config.host)!;
+				}
+
+				// group subscribed events
+				if (!hostConfig.events.includes(camera.triggerEventType)) {
+					hostConfig.events = `"${hostConfig.events}","${camera.triggerEventType}"`;
 				}
 			})
-			uniqueHosts.forEach(host => {
-				let events: DahuaEvents = new DahuaEvents(host.host, host.user, host.pass, host.useHttp)
+			uniqueHosts.forEach(hostConfig => {
+				let events: DahuaEvents = new DahuaEvents(hostConfig.server.host, hostConfig.server.user, 
+					hostConfig.server.pass, hostConfig.server.useHttp, hostConfig.events);
 		
 				events.getEventEmitter().on(events.ALARM_EVENT_NAME, this.alertMotion)
 				events.getEventEmitter().on(events.ERROR_EVENT_NAME, (data: DahuaError) => { 
@@ -57,7 +74,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			if (dahuaAlarm.action === 'Start') {
 				this.log.debug(`Video Motion Detected on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.motionUrl(cameraName)).then(res => {
-					this.log.info(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
+					this.log.debug(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
 					let msg = 'Error when posting video motion to homebridge-camera-ffmpeg'
 					if(err.response) {
@@ -71,7 +88,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			} else if (dahuaAlarm.action === 'Stop')	{
 				this.log.debug(`Video Motion Ended on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
-					this.log.info(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
+					this.log.debug(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
 					let msg = 'Error when posting reset video motion to homebridge-camera-ffmpeg'
 					if(err.response) {
@@ -98,8 +115,8 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		for(let i = 0; i < this.config.cameras.length; i++) {
 			let camera = this.config.cameras[i]
 			if(camera.index === Number(alarm.index)) {
-				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host) || 
-					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host)) {
+				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host && camera.triggerEventType === alarm.eventType) || 
+					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host && camera.triggerEventType === alarm.eventType)) {
 						return camera.cameraName
 					}
 			}
@@ -124,9 +141,12 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 					this.log.error('no camera name or index set!')
 					error = true
 					return
-				}
+				} else if (camera.triggerEventType.length == 0) {
+					this.log.error('no trigger event type!')
+					error = true
+					return
 				/*if it has camera credentials and it's invalid */
-				else if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
+				} else if(camera.cameraCredentials && this.invalidCameraCredentials(camera.cameraCredentials)) {
 					error = true
 					return error					
 				} 
@@ -152,4 +172,9 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		
 		return error
 	}
+}
+
+type DahuaEventsConfig = {
+    events:       string
+    server:       CameraCredentials
 }
