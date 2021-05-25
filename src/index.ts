@@ -70,7 +70,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		let cameraName = this.getCameraName(dahuaAlarm)
 		if(cameraName) {
 			if (dahuaAlarm.action === 'Start') {
-				this.log.debug(`Video Motion Detected on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
+				this.log.info(`${dahuaAlarm.eventType} detected on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.motionUrl(cameraName)).then(res => {
 					this.log.debug(`Motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
@@ -84,7 +84,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 					}
 				})
 			} else if (dahuaAlarm.action === 'Stop')	{
-				this.log.debug(`Video Motion Ended on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
+				this.log.debug(`${dahuaAlarm.eventType} ended on index: ${dahuaAlarm.index}, mapped to camera ${cameraName}`)
 				axios.post(this.resetMotionUrl(cameraName)).then(res => {
 					this.log.debug(`Reset motion for ${cameraName} posted to homebridge-camera-ffmpeg, received`, res.data)
 				}).catch((err: AxiosError) => {
