@@ -49,7 +49,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 				}
 
 				// group subscribed events
-				hostConfig.events.add(camera.triggerEventType);
+				camera.triggerEventTypes.forEach(hostConfig.events.add, hostConfig.events)
 			})
 			uniqueHosts.forEach(hostConfig => {
 				let events: DahuaEvents = new DahuaEvents(hostConfig.server.host, hostConfig.server.user, 
@@ -113,8 +113,8 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 		for(let i = 0; i < this.config.cameras.length; i++) {
 			let camera = this.config.cameras[i]
 			if(camera.index === Number(alarm.index)) {
-				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host && camera.triggerEventType === alarm.eventType) || 
-					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host && camera.triggerEventType === alarm.eventType)) {
+				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host && camera.triggerEventTypes.includes(alarm.eventType)) || 
+					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host && camera.triggerEventTypes.includes(alarm.eventType))) {
 						return camera.cameraName
 					}
 			}
@@ -139,8 +139,8 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 					this.log.error('no camera name or index set!')
 					error = true
 					return
-				} else if (camera.triggerEventType.length == 0) {
-					this.log.error('no trigger event type!')
+				} else if (!camera.triggerEventTypes || camera.triggerEventTypes.length == 0) {
+					this.log.error('no trigger event types!')
 					error = true
 					return
 				/*if it has camera credentials and it's invalid */

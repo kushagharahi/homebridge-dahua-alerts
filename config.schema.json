@@ -63,32 +63,30 @@
                             "required": true,
                 			"description": "Camera name you set in homebridge-camera-ffmpeg"
                         },
-                        "triggerEventType": {
+                        "triggerEventTypes": {
                             "title": "Trigger Event Type",
                 			"description": "Motion or IVS events to alert on",
-                            "type": ["string"],
-                            "oneOf": [{
-                                  "title": "Motion detect (standard)",
-                                  "const": "VideoMotion"
-                                },
-                                {
-                                  "title": "Video Loss",
-                                  "const": "VideoLoss"
-                                },
-                                {
-                                  "title": "Video Blind",
-                                  "const": "VideoBlind"
-                                },
-                                {
-                                  "title": "Tripwire (IVS)",
-                                  "const": "CrossLineDetection"
-                                },
-                                {
-                                  "title": "Intrusion (IVS)",
-                                  "const": "CrossRegionDetection"
-                                }
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": ["VideoMotion", "VideoLoss", "VideoBlind", "CrossLineDetection", "CrossRegionDetection", "AlarmLocal",
+                                    "VideoAbnormalDetection", "LeftDetection", "TakenAwayDetection", "FaceDetection", "AudioMutation", "AudioAnomaly"]
+                            },
+                            "titleMap": [
+                                { "name": "Motion detect (standard)", "value": "VideoMotion" },
+                                { "name": "Video Loss", "value": "VideoLoss" },
+                                { "name": "Video Blind", "value": "VideoBlind" },
+                                { "name": "Alarm", "value": "AlarmLocal" },
+                                { "name": "Scene change/video abnormal", "value": "VideoAbnormalDetection" },
+                                { "name": "Tripwire (IVS)", "value": "CrossLineDetection" },
+                                { "name": "Intrusion (IVS)", "value": "CrossRegionDetection" },
+                                { "name": "Abandoned Object (IVS)", "value": "LeftDetection" },
+                                { "name": "Missing Object (IVS)", "value": "TakenAwayDetection" },
+                                { "name": "Face Detection (IVS)", "value": "FaceDetection" },
+                                { "name": "Audio Intensity Change", "value": "AudioMutation" },
+                                { "name": "Audio Input Abnormal", "value": "AudioAnomaly" }
                             ],
-                            "default": "VideoMotion",
+                            "default": ["VideoMotion"],
                             "required": true
                         },
                         "cameraCredentials": {
@@ -151,7 +149,7 @@
             "items": [
                 "cameras[].index",
                 "cameras[].cameraName",
-                "cameras[].triggerEventType",
+                "cameras[].triggerEventTypes",
                 {
                     "key": "cameras[].cameraCredentials",
                     "type": "section",
