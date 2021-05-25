@@ -19,7 +19,7 @@ class DahuaEvents {
         keepAliveMsecs: 1000,
         maxSockets: 1,
         maxFreeSockets: 0,
-        timeout: 30000, //30s
+        timeout: 1200000, //20min = 1200s
         rejectUnauthorized: false
     }
      
