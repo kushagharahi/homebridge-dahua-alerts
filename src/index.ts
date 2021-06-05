@@ -18,7 +18,6 @@ export = (api: API) => {
 class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging
 	private readonly config: DahuaCameraConfig 
-
 	constructor(log: Logging, config: PlatformConfig) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
@@ -30,7 +29,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 			//find all uniqueHosts in config in order to only setup one "DahuaEvents" (socket) connection per unique host
 			let uniqueHosts = new Map<string, CameraCredentials>()
 			if(config.host) {
-				uniqueHosts.set(config.host, {host: config.host, user: config.user, pass: config.pass} as CameraCredentials)
+				uniqueHosts.set(config.host, {host: config.host, user: config.user, pass: config.pass, useHttp: config.useHttp} as CameraCredentials)
 			}
 			this.config.cameras.forEach(camera => {
 				if(camera.cameraCredentials) {
