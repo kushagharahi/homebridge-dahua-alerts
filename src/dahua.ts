@@ -3,10 +3,6 @@ import { Agent as HttpsAgent } from 'https'
 import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
-import tls from 'tls'
-
-tls.DEFAULT_MIN_VERSION = 'TLSv1'
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
 
 class DahuaEvents {
     //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
@@ -21,8 +17,7 @@ class DahuaEvents {
         keepAliveMsecs: 1000,
         maxSockets: 1,
         maxFreeSockets: 0,
-        timeout: 30000, //30s
-        rejectUnauthorized: false
+        timeout: 30000 //30s
     }
 
     private eventEmitter:           EventEmitter
@@ -50,7 +45,7 @@ class DahuaEvents {
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout,
+                timeout: this.AGENT_SETTINGS.timeout
             }) 
         } else {
             keepAliveAgent = new HttpsAgent({
@@ -59,7 +54,9 @@ class DahuaEvents {
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
                 timeout: this.AGENT_SETTINGS.timeout,
-                rejectUnauthorized: this.AGENT_SETTINGS.rejectUnauthorized
+                rejectUnauthorized: false,
+                secureProtocol: "TLSv1",
+                requestCert: false
             })
         }
         
@@ -72,7 +69,8 @@ class DahuaEvents {
             headers: this.HEADERS,
             method: 'GET',
             responseType: 'stream',
-            timeout: 30000
+            timeout: 30000,
+            
         }
 
         this.eventEmitter = new EventEmitter()
