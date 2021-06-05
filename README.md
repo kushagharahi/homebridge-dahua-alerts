@@ -3,7 +3,7 @@
 [![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins) [![npm version](https://badge.fury.io/js/homebridge-dahua-alerts.svg)](https://www.npmjs.com/package/homebridge-dahua-alerts) [![npm total downloads](https://img.shields.io/npm/dt/homebridge-dahua-alerts.svg)](https://www.npmjs.com/package/homebridge-dahua-alerts)
 
 
-Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffmpeg
+Routes motion alerts for Dahua, Alhua and Lorex camera streams to homebridge-camera-ffmpeg
 
 -- Confirmed working with: 
 | Dahua DVR | Dahua Standalone Camera | Lorex DVR |
@@ -14,6 +14,7 @@ Routes motion alerts for Dahua and Lorex camera streams to homebridge-camera-ffm
 | - | DH-IPC-HDBW4631R-S | - | 
 | DHI-NVR4104HS-P-4Ks2 | - | - |
 | - | - | Lorex NR818 |
+| - | N43AJ52-B | - |
 
 but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 
