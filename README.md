@@ -5,7 +5,7 @@
 
 Routes motion alerts for Dahua, Alhua and Lorex camera streams to homebridge-camera-ffmpeg
 
-This plugin _only_ supports *VideoMotion*, not any SmartMotion detection. You must disable those features in order for this plugin to work correctly. [Please check issue #15 if you have compatible hardware and would like to contribute SmartMotion dectection](https://github.com/kushagharahi/homebridge-dahua-alerts/issues/15)
+This plugin **only** supports **VideoMotion** alerts, not any SmartMotion detection. You must disable those features in order for this plugin to work correctly. [Please check issue #15 if you have compatible hardware and would like to contribute SmartMotion dectection](https://github.com/kushagharahi/homebridge-dahua-alerts/issues/15)
 
 -- Confirmed working with: 
 | Dahua DVR | Dahua Standalone Camera | Lorex DVR |
