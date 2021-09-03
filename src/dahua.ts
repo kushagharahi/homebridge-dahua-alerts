@@ -79,18 +79,20 @@ class DahuaEvents {
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
             res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved: ${data.toString()}`)
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved on host: ${this.host}: ${data.toString()}`)
                 let event = this.parseEventData(data.toString())
                 this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
             })
 
             res.data.socket.on(this.SOCKET_CLOSE, (close: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, "Socket connection timed out or closed by NVR.")
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host}`)
+                
                 this.reconnect(axiosRequestConfig, 1000)
             })
+                    
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
-                                        error: `Error Received`, 
+                                        error: `Error received from host: ${this.host}`, 
                                         errorDetails: "Error Details:"
                                     }
 
@@ -125,14 +127,14 @@ class DahuaEvents {
                         `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`
                         
                         axiosRequestConfig.headers = this.HEADERS
-
+                        this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `401 received and www-authenticate headers on ${this.host}, sending digest auth. Count: ${count}`)
                         this.connect(axiosRequestConfig, count)
                         return
                     } catch (e) {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
                 } else {
-                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
+                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage} on Host: ${this.host}`
                 }
             // client never received a response, or request never left
             } else if(err.request) {
@@ -188,6 +190,7 @@ class DahuaEvents {
             })
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
+            return { action: action, index: index }
         }
         return { action: action, index: index }
     }
