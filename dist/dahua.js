@@ -11,7 +11,7 @@ const events_1 = require("events");
 const crypto_1 = __importDefault(require("crypto"));
 class DahuaEvents {
     constructor(host, user, pass, useHttp) {
-        //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
+        //eventManager&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
         this.EVENTS_URI = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]';
         this.HEADERS = { 'Accept': 'multipart/x-mixed-replace' };
         this.SOCKET_CLOSE = 'close';
@@ -21,7 +21,7 @@ class DahuaEvents {
             keepAliveMsecs: 1000,
             maxSockets: 1,
             maxFreeSockets: 0,
-            timeout: 30000 //30s
+            timeout: 100000 //10mins
         };
         this.ALARM_EVENT_NAME = 'alarm';
         this.DEBUG_EVENT_NAME = 'alarm_payload';
@@ -36,8 +36,11 @@ class DahuaEvents {
                     this.eventEmitter.emit(this.ALARM_EVENT_NAME, { action: event.action, index: event.index, host: this.host });
                 });
                 res.data.socket.on(this.SOCKET_CLOSE, (close) => {
-                    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host}`);
+                    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host} + ${close.toString()}`);
                     this.reconnect(axiosRequestConfig, 1000);
+                });
+                res.data.socket.on('end', (data) => {
+                    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host} + ${data.toString()}`);
                 });
             }).catch((err) => {
                 var _a, _b, _c;
@@ -175,7 +178,8 @@ class DahuaEvents {
             headers: this.HEADERS,
             method: 'GET',
             responseType: 'stream',
-            timeout: 30000
+            timeout: 100000,
+            timeoutErrorMessage: 'Socket timed out, no response received from NVR'
         };
         this.eventEmitter = new events_1.EventEmitter();
         this.connect(axiosRequestConfig, 0);

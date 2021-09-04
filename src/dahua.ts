@@ -5,7 +5,7 @@ import { EventEmitter } from 'events'
 import crypto from 'crypto'
 
 class DahuaEvents {
-    //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
+    ///cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
     private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
     private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
@@ -17,7 +17,7 @@ class DahuaEvents {
         keepAliveMsecs: 1000,
         maxSockets: 1,
         maxFreeSockets: 0,
-        timeout: 30000 //30s
+        timeout: 100000 //10mins
     }
 
     private eventEmitter:           EventEmitter
@@ -68,7 +68,8 @@ class DahuaEvents {
             headers: this.HEADERS,
             method: 'GET',
             responseType: 'stream',
-            timeout: 30000
+            timeout: 100000,
+            timeoutErrorMessage: 'Socket timed out, no response received from NVR'
         }
 
         this.eventEmitter = new EventEmitter()
@@ -85,9 +86,12 @@ class DahuaEvents {
             })
 
             res.data.socket.on(this.SOCKET_CLOSE, (close: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host}`)
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host} + ${close.toString()}`)
                 
                 this.reconnect(axiosRequestConfig, 1000)
+            })
+            res.data.socket.on('end', (data: Buffer) => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host} + ${data.toString()}`)
             })
                     
         }).catch((err: AxiosError) => {
