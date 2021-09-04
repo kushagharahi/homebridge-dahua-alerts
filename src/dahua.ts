@@ -7,7 +7,7 @@ import crypto from 'crypto'
 class DahuaEvents {
     ///cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
     private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
-    private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
+    private HEADERS:                any = {'Accept':'multipart/x-mixed-replace', 'Connection':'Keep-Alive'}
     
     private SOCKET_CLOSE:           string = 'close'
     private RECONNECT_INTERNAL_MS:  number = 10000
@@ -17,7 +17,7 @@ class DahuaEvents {
         keepAliveMsecs: 1000,
         maxSockets: 1,
         maxFreeSockets: 0,
-        timeout: 100000 //10mins
+        timeout: 60 * 60000 //2 mins -- my NVR times out every 1 min 40 seconds
     }
 
     private eventEmitter:           EventEmitter
@@ -44,8 +44,7 @@ class DahuaEvents {
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout
+                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets
             }) 
         } else {
             keepAliveAgent = new HttpsAgent({
@@ -53,12 +52,10 @@ class DahuaEvents {
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout,
                 rejectUnauthorized: false,
                 minVersion: "TLSv1"
             })
         }
-        
 
         let useSSL = useHttp ? 'http': 'https'
         const axiosRequestConfig: AxiosRequestConfig ={
@@ -67,9 +64,7 @@ class DahuaEvents {
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
-            responseType: 'stream',
-            timeout: 100000,
-            timeoutErrorMessage: 'Socket timed out, no response received from NVR'
+            responseType: 'stream'
         }
 
         this.eventEmitter = new EventEmitter()
@@ -79,18 +74,21 @@ class DahuaEvents {
 
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
-            res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
+
+            res.data.socket.on(this.DATA_EVENT_NAME, (data) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved on host: ${this.host}: ${data.toString()}`)
                 let event = this.parseEventData(data.toString())
                 this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
             })
 
-            res.data.socket.on(this.SOCKET_CLOSE, (close: Buffer) => {
+            res.data.socket.on(this.SOCKET_CLOSE, (close) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host} + ${close.toString()}`)
                 
                 this.reconnect(axiosRequestConfig, 1000)
             })
-            res.data.socket.on('end', (data: Buffer) => {
+
+
+            res.data.socket.on('end', (data) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host} + ${data.toString()}`)
             })
                     

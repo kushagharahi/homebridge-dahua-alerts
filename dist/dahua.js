@@ -11,9 +11,9 @@ const events_1 = require("events");
 const crypto_1 = __importDefault(require("crypto"));
 class DahuaEvents {
     constructor(host, user, pass, useHttp) {
-        //eventManager&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
+        ///cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
         this.EVENTS_URI = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]';
-        this.HEADERS = { 'Accept': 'multipart/x-mixed-replace' };
+        this.HEADERS = { 'Accept': 'multipart/x-mixed-replace', 'Connection': 'Keep-Alive' };
         this.SOCKET_CLOSE = 'close';
         this.RECONNECT_INTERNAL_MS = 10000;
         this.AGENT_SETTINGS = {
@@ -21,7 +21,7 @@ class DahuaEvents {
             keepAliveMsecs: 1000,
             maxSockets: 1,
             maxFreeSockets: 0,
-            timeout: 100000 //10mins
+            timeout: 60 * 60000 //2 mins -- my NVR times out every 1 min 40 seconds
         };
         this.ALARM_EVENT_NAME = 'alarm';
         this.DEBUG_EVENT_NAME = 'alarm_payload';
@@ -155,8 +155,7 @@ class DahuaEvents {
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout
+                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets
             });
         }
         else {
@@ -165,7 +164,6 @@ class DahuaEvents {
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout,
                 rejectUnauthorized: false,
                 minVersion: "TLSv1"
             });
@@ -177,9 +175,7 @@ class DahuaEvents {
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
-            responseType: 'stream',
-            timeout: 100000,
-            timeoutErrorMessage: 'Socket timed out, no response received from NVR'
+            responseType: 'stream'
         };
         this.eventEmitter = new events_1.EventEmitter();
         this.connect(axiosRequestConfig, 0);
