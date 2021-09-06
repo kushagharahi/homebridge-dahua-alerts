@@ -75,7 +75,7 @@ class DahuaEvents {
     }
 
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
-        let req = Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
+        Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
 
             let stream = res.data
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)

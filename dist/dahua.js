@@ -29,7 +29,7 @@ class DahuaEvents {
         this.DATA_EVENT_NAME = 'data';
         this.RECONNECTING_EVENT_NAME = 'reconnecting';
         this.connect = (axiosRequestConfig, count) => {
-            let req = axios_1.default.request(axiosRequestConfig).then((res) => {
+            axios_1.default.request(axiosRequestConfig).then((res) => {
                 let stream = res.data;
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`);
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Connection response received for host: ${this.host} ${JSON.stringify(res.headers)} ${JSON.stringify(res.statusText)} ${JSON.stringify(res.status)}`);
