@@ -3,6 +3,7 @@ import { Agent as HttpsAgent } from 'https'
 import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
+import { Readable } from 'stream'
 
 class DahuaEvents {
     ///cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
@@ -37,7 +38,7 @@ class DahuaEvents {
             password: pass
         }
 
-        let keepAliveAgent 
+        let keepAliveAgent
         if(useHttp) {
             keepAliveAgent = new HttpAgent({
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
@@ -77,7 +78,7 @@ class DahuaEvents {
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
 
-            let stream = res.data
+            let stream: Readable = res.data
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
 
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Connection response received for host: ${this.host} ${JSON.stringify(res.headers)} ${JSON.stringify(res.statusText)} ${JSON.stringify(res.status)}`)
@@ -94,7 +95,7 @@ class DahuaEvents {
             })
             
             stream.on('error', (data: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host} + ${data.toString()}`)
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`)
             })
            
             stream.on('end', () => {
@@ -103,9 +104,7 @@ class DahuaEvents {
            
             stream.on('timeout', () => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out for host: ${this.host} after ${this.AGENT_SETTINGS.timeout/1000} seconds, destroying connection`)
-                stream.destroy((error: Error) => {
-                    this.eventEmitter.emit(this.ERROR_EVENT_NAME, `Error destroying connection to ${this.host} ${JSON.stringify(error)}`)
-                })
+                stream.destroy(new Error(`Error destroying socket connection for host: ${this.host}`))
             })
    
         }).catch((err: AxiosError) => {

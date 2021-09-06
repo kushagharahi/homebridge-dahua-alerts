@@ -43,16 +43,14 @@ class DahuaEvents {
                     this.reconnect(axiosRequestConfig, 1000);
                 });
                 stream.on('error', (data) => {
-                    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host} + ${data.toString()}`);
+                    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`);
                 });
                 stream.on('end', () => {
                     this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`);
                 });
                 stream.on('timeout', () => {
                     this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out for host: ${this.host} after ${this.AGENT_SETTINGS.timeout / 1000} seconds, destroying connection`);
-                    stream.destroy((error) => {
-                        this.eventEmitter.emit(this.ERROR_EVENT_NAME, `Error destroying connection to ${this.host} ${JSON.stringify(error)}`);
-                    });
+                    stream.destroy(new Error(`Error destroying socket connection for host: ${this.host}`));
                 });
             }).catch((err) => {
                 var _a, _b, _c;
