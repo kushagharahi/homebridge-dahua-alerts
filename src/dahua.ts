@@ -7,7 +7,7 @@ import crypto from 'crypto'
 class DahuaEvents {
     ///cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
     private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
-    private HEADERS:                any = {'Accept':'multipart/x-mixed-replace', 'Connection':'Keep-Alive'}
+    private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
     private SOCKET_CLOSE:           string = 'close'
     private RECONNECT_INTERNAL_MS:  number = 10000
@@ -16,8 +16,8 @@ class DahuaEvents {
         keepAlive: true,
         keepAliveMsecs: 1000,
         maxSockets: 1,
-        maxFreeSockets: 0,
-        timeout: 60 * 60000 //2 mins -- my NVR times out every 1 min 40 seconds
+        maxFreeSockets: 1,
+        timeout: 30000 
     }
 
     private eventEmitter:           EventEmitter
@@ -37,14 +37,14 @@ class DahuaEvents {
             password: pass
         }
 
-        let keepAliveAgent;
-
+        let keepAliveAgent 
         if(useHttp) {
             keepAliveAgent = new HttpAgent({
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets
+                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+                timeout: this.AGENT_SETTINGS.timeout
             }) 
         } else {
             keepAliveAgent = new HttpsAgent({
@@ -53,7 +53,8 @@ class DahuaEvents {
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
                 rejectUnauthorized: false,
-                minVersion: "TLSv1"
+                minVersion: "TLSv1",
+                timeout: this.AGENT_SETTINGS.timeout
             })
         }
 
@@ -61,6 +62,7 @@ class DahuaEvents {
         const axiosRequestConfig: AxiosRequestConfig ={
             url: `${useSSL}://${host}${this.EVENTS_URI}`,
             httpsAgent: keepAliveAgent, 
+            httpAgent: keepAliveAgent,
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
@@ -73,25 +75,39 @@ class DahuaEvents {
     }
 
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
-        Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
+        let req = Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
 
-            res.data.socket.on(this.DATA_EVENT_NAME, (data) => {
+            let stream = res.data
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
+
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Connection response received for host: ${this.host} ${JSON.stringify(res.headers)} ${JSON.stringify(res.statusText)} ${JSON.stringify(res.status)}`)
+            
+            stream.on(this.DATA_EVENT_NAME, (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved on host: ${this.host}: ${data.toString()}`)
                 let event = this.parseEventData(data.toString())
                 this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
             })
 
-            res.data.socket.on(this.SOCKET_CLOSE, (close) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out or closed on host: ${this.host} + ${close.toString()}`)
-                
+            stream.on(this.SOCKET_CLOSE, () => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection closed for host: ${this.host}`)
                 this.reconnect(axiosRequestConfig, 1000)
             })
-
-
-            res.data.socket.on('end', (data) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host} + ${data.toString()}`)
+            
+            stream.on('error', (data: Buffer) => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host} + ${data.toString()}`)
             })
-                    
+           
+            stream.on('end', () => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
+            })
+           
+            stream.on('timeout', () => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out for host: ${this.host} after ${this.AGENT_SETTINGS.timeout/1000} seconds, destroying connection`)
+                stream.destroy((error: Error) => {
+                    this.eventEmitter.emit(this.ERROR_EVENT_NAME, `Error destroying connection to ${this.host} ${JSON.stringify(error)}`)
+                })
+            })
+   
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
                                         error: `Error received from host: ${this.host}`, 
@@ -129,14 +145,14 @@ class DahuaEvents {
                         `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`
                         
                         axiosRequestConfig.headers = this.HEADERS
-                        this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `401 received and www-authenticate headers on ${this.host}, sending digest auth. Count: ${count}`)
+                        this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `401 received and www-authenticate headers, sending digest auth. Count: ${count}`)
                         this.connect(axiosRequestConfig, count)
                         return
                     } catch (e) {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
                 } else {
-                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage} on Host: ${this.host}`
+                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
                 }
             // client never received a response, or request never left
             } else if(err.request) {
@@ -153,7 +169,7 @@ class DahuaEvents {
     
     private reconnect = (axiosRequestConfig: AxiosRequestConfig, reconnection_interval_ms: number) => {
         //reconnect after 30s
-        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting in ${reconnection_interval_ms/1000}s.`)
+        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
         setTimeout(() => {
             this.connect(axiosRequestConfig, 0)
         }, reconnection_interval_ms)
@@ -192,7 +208,6 @@ class DahuaEvents {
             })
         } catch (e) {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Could not parse event data: ${data}`)
-            return { action: action, index: index }
         }
         return { action: action, index: index }
     }
