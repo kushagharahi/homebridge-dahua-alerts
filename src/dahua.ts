@@ -45,7 +45,7 @@ class DahuaEvents {
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout
+                //timeout: this.AGENT_SETTINGS.timeout
             }) 
         } else {
             keepAliveAgent = new HttpsAgent({
@@ -54,8 +54,7 @@ class DahuaEvents {
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
                 rejectUnauthorized: false,
-                minVersion: "TLSv1",
-                timeout: this.AGENT_SETTINGS.timeout
+                minVersion: "TLSv1"
             })
         }
 
@@ -89,23 +88,25 @@ class DahuaEvents {
                 this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
             })
 
-            stream.on(this.SOCKET_CLOSE, () => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection closed for host: ${this.host}`)
-                this.reconnect(axiosRequestConfig, 1000)
-            })
+            //stream.on(this.SOCKET_CLOSE, () => {
+            //    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection closed for host: ${this.host}`)
+            //    this.reconnect(axiosRequestConfig, 1000)
+            // })
             
             stream.on('error', (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
             })
            
             stream.on('end', () => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
             })
            
-            stream.on('timeout', () => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out for host: ${this.host} after ${this.AGENT_SETTINGS.timeout/1000} seconds, destroying connection`)
-                stream.destroy(new Error(`Error destroying socket connection for host: ${this.host}`))
-            })
+            //stream.on('timeout', () => {
+            //    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out for host: ${this.host} after ${this.AGENT_SETTINGS.timeout/1000} seconds, destroying connection`)
+            //    stream.destroy(new Error(`Error destroying socket connection for host: ${this.host}`))
+            //})
    
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
