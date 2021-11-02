@@ -6,11 +6,10 @@ import crypto from 'crypto'
 import { Readable } from 'stream'
 
 class DahuaEvents {
-    ///cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
+    //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
     private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
     private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
-    private SOCKET_CLOSE:           string = 'close'
     private RECONNECT_INTERNAL_MS:  number = 10000
 
     private AGENT_SETTINGS = {
@@ -18,7 +17,6 @@ class DahuaEvents {
         keepAliveMsecs: 1000,
         maxSockets: 1,
         maxFreeSockets: 1,
-        timeout: 30000 
     }
 
     private eventEmitter:           EventEmitter
@@ -45,7 +43,6 @@ class DahuaEvents {
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                //timeout: this.AGENT_SETTINGS.timeout
             }) 
         } else {
             keepAliveAgent = new HttpsAgent({
@@ -88,10 +85,9 @@ class DahuaEvents {
                 this.eventEmitter.emit(this.ALARM_EVENT_NAME, {action: event.action, index: event.index, host: this.host} as DahuaAlarm)
             })
 
-            //stream.on(this.SOCKET_CLOSE, () => {
-            //    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection closed for host: ${this.host}`)
-            //    this.reconnect(axiosRequestConfig, 1000)
-            // })
+            stream.on('close', () => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection closed for host: ${this.host}`)
+            })
             
             stream.on('error', (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`)
@@ -102,11 +98,6 @@ class DahuaEvents {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
                 this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
             })
-           
-            //stream.on('timeout', () => {
-            //    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection timed out for host: ${this.host} after ${this.AGENT_SETTINGS.timeout/1000} seconds, destroying connection`)
-            //    stream.destroy(new Error(`Error destroying socket connection for host: ${this.host}`))
-            //})
    
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
