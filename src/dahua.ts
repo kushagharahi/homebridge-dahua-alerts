@@ -16,7 +16,7 @@ class DahuaEvents {
         keepAlive: true,
         keepAliveMsecs: 1000,
         maxSockets: 1,
-        maxFreeSockets: 1,
+        maxFreeSockets: 1 //TODO: do we need a free socket?
     }
 
     private eventEmitter:           EventEmitter
@@ -128,7 +128,7 @@ class DahuaEvents {
                         const md5 = str => crypto.createHash('md5').update(str).digest('hex')
                 
                         const HA1 = md5(`${axiosRequestConfig.auth?.username}:${realm}:${axiosRequestConfig.auth?.password}`)
-                        const HA2 = md5(`GET:${this.EVENTS_URI}`);
+                        const HA2 = md5(`GET:${this.EVENTS_URI}`)
                         const response = md5(`${HA1}:${nonce}:${nonceCount}:${cnonce}:auth:${HA2}`)
                 
                         this.HEADERS['authorization'] = `Digest username="${axiosRequestConfig.auth?.username}",realm="${realm}",` +
