@@ -40,7 +40,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 * Configuration for one NVR with multiple cameras
 
 ### homebridge-camera-ffmpeg
-```
+```javascript
 {
     "name": "Camera FFmpeg",
     "porthttp": 8088,
@@ -48,8 +48,8 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
     "cameras": [
         {
             "name": "Driveway",
-            "motion": true,
-            "motionTimeout": 0,
+            "motion": true,     // enables the motion sensor 
+            "motionTimeout": 0, // disables automatically resetting the motion after 1 seconds by default
             "videoConfig": {
                 "source": "-i rtsp://admin:<snip>@192.168.1.XX:554/cam/realmonitor?channel=1&subtype=1"
             }
@@ -77,12 +77,12 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 
 ### homebridge-dahua-alerts
 
-```
+```javascript
 {
     "cameras": [
         {
-            "index": 0,
-            "cameraName": "Driveway"
+            "index": 0, // this index starts at 0, which is the camera channel number subtracted by 1
+            "cameraName": "Driveway" // this must match the "name" of the camera specified in the "homebridge-camera-ffmpeg" config
         },
         {
             "index": 1,
@@ -93,11 +93,11 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
             "cameraName": "Backdoor"
         }
     ],
-    "homebridgeCameraFfmpegHttpPort": 8088,
-    "platform": "dahua-alerts",
-    "host": "XX.XX.XX.XX",
-    "user": "admin",
-    "pass": "XX"
+    "homebridgeCameraFfmpegHttpPort": 8088, // this must match the "porthttp" config in the "homebridge-camera-ffmpeg" config
+    "host": "XX.XX.XX.XX", // the IP of NVR or camera
+    "user": "admin", // the username of NVR or camera
+    "pass": "XX", // the password of NVR or camera,
+    "platform": "dahua-alerts"
 }
 ```
 
@@ -105,7 +105,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 This is useful if you have standalone IP Camera(s) (not going through an NVR), a mix of IP Cameras and NVR(s), or multiple NVRs.
 
 To define a host/user/pass on a camera simply add the `cameraCredentials` object. If you have a top level host/user/pass defined, this object will override it. 
-```
+```javascript
     "cameras": [
         {
             "index": 0,
