@@ -30,7 +30,11 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 ## Installation
 1. Install Homebridge using the [official instructions](https://github.com/homebridge/homebridge/wiki).
 2. Install [`homebridge-camera-ffmpeg`](https://github.com/Sunoo/homebridge-camera-ffmpeg)
-3. Configure your RTSP streams in `homebridge-camera-ffmpeg` and configure [`Http-based Automation`](https://sunoo.github.io/homebridge-camera-ffmpeg/automation/http.html) for the camera streams you want motion detection. Make sure to set `motionTimeout` to 0 and set HTTP Localhost Only to true.
+3. Configure your RTSP streams in `homebridge-camera-ffmpeg`
+   1. Configure `"porthttp": 8088` for `Http-based Automation`](https://sunoo.github.io/homebridge-camera-ffmpeg/automation/http.html)
+   2. Configure `"motion": true` for the camera streams you want motion detection
+   3. Configure `"motionTimeout": 0` to disable automatically resetting the motion after 1 second default
+   4. (Optional) Configure `"localhttp": true` to ensure HTTP automations only work from same device (for enhanced security)
 4. Install [`homebridge-dahua-alerts`](https://www.npmjs.com/package/homebridge-dahua-alerts).
 5. Configure your NVR and camera settings.
     - Ensure you have enabled `https` or port 443 on your device if you're getting `ECONNREFUSED` in the debug logs. Not required by all.
@@ -40,7 +44,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 * Configuration for one NVR with multiple cameras
 
 ### homebridge-camera-ffmpeg
-```
+```javascript
 {
     "name": "Camera FFmpeg",
     "porthttp": 8088,
@@ -77,7 +81,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 
 ### homebridge-dahua-alerts
 
-```
+```javascript
 {
     "cameras": [
         {
@@ -94,18 +98,26 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
         }
     ],
     "homebridgeCameraFfmpegHttpPort": 8088,
-    "platform": "dahua-alerts",
     "host": "XX.XX.XX.XX",
     "user": "admin",
-    "pass": "XX"
+    "pass": "XX",
+    "platform": "dahua-alerts"
 }
 ```
+- `homebridgeCameraFfmpegHttpPort` must match the `porthttp` config in the `homebridge-camera-ffmpeg` config
+- `host` is the IP of the NVR or camera
+- `user` is username of the NVR or camera
+- `pass` is the password of the NVR or camera
+
+For each camera you want to monitor, add a new entry to the `cameras` array.
+- `index` if the camera's channel number substracted by 1 (the index starts from 0, the camera channel starts from 1)
+- `cameraName` must match the `name` of the camera specified in the `homebridge-camera-ffmpeg` config
 
 #### Override Camera Connection Credentials
 This is useful if you have standalone IP Camera(s) (not going through an NVR), a mix of IP Cameras and NVR(s), or multiple NVRs.
 
 To define a host/user/pass on a camera simply add the `cameraCredentials` object. If you have a top level host/user/pass defined, this object will override it. 
-```
+```javascript
     "cameras": [
         {
             "index": 0,
