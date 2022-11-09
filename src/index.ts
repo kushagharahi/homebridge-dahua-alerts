@@ -60,7 +60,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 				}).catch((err: AxiosError) => {
 					let msg = 'Error when posting video motion to homebridge-camera-ffmpeg'
 					if(err.response) {
-						this.log.error(`${msg} - Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`)
+						this.log.error(`${msg} - Status Code: ${err.response.status} Response: ${err.response.statusText}`)
 					} else if(err.request) {
 						this.log.error(`${msg} - didn't get a response from homebridge-camera-ffmpeg - ${err.message}`)
 					} else {
@@ -74,7 +74,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 				}).catch((err: AxiosError) => {
 					let msg = 'Error when posting reset video motion to homebridge-camera-ffmpeg'
 					if(err.response) {
-						this.log.error(`${msg} - Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`)
+						this.log.error(`${msg} - Status Code: ${err.response.status} Response: ${err.response.statusText}`)
 					} else if(err.request) {
 						this.log.error(`${msg} - didn't get a response from homebridge-camera-ffmpeg - ${err.message}`)
 					} else {

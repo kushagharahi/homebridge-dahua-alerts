@@ -143,7 +143,6 @@ class DahuaEvents {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
                 } else {
-                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
                 }
             // client never received a response, or request never left
             } else if(err.request) {
