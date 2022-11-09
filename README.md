@@ -108,6 +108,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 - `host` is the IP of the NVR or camera
 - `user` is username of the NVR or camera
 - `pass` is the password of the NVR or camera
+- `useHttp` (optional) use HTTP instead of HTTPS to connect to host
 
 For each camera you want to monitor, add a new entry to the `cameras` array.
 - `index` if the camera's channel number substracted by 1 (the index starts from 0, the camera channel starts from 1)
