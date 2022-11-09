@@ -1,18 +1,22 @@
 import Axios, {AxiosBasicCredentials, AxiosResponse, AxiosError, AxiosRequestConfig} from 'axios'
-import { Agent as HttpsAgent } from 'https'
+import { Agent as HttpsAgent, AgentOptions } from 'https'
 import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
 import { Readable } from 'stream'
 
 class DahuaEvents {
+    private HEARTBEAT_INTERVAL_SECONDS: number = 5;
+    private HEARTBEAT_RESTART_TIMER: NodeJS.Timeout | undefined;
+
     //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
-    private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
+    //&heartbeat=10 -- emits a Heartbeat message every 10 seconds
+    private EVENTS_URI:             string = `/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]&heartbeat=${this.HEARTBEAT_INTERVAL_SECONDS}`
     private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
     private RECONNECT_INTERNAL_MS:  number = 10000
 
-    private AGENT_SETTINGS = {
+    private AGENT_SETTINGS: AgentOptions = {
         keepAlive: true,
         keepAliveMsecs: 1000,
         maxSockets: 1,
@@ -63,7 +67,8 @@ class DahuaEvents {
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
-            responseType: 'stream'
+            responseType: 'stream',
+
         }
 
         this.eventEmitter = new EventEmitter()
@@ -78,6 +83,15 @@ class DahuaEvents {
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
 
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Connection response received for host: ${this.host} ${JSON.stringify(res.headers)} ${JSON.stringify(res.statusText)} ${JSON.stringify(res.status)}`)
+
+            // set the timer to the heartbeat interval plus a second to give some buffer for inaccurate heartbeats
+            const heartbeatRestartMs = (this.HEARTBEAT_INTERVAL_SECONDS + 1) * 1000;
+
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Scheduling heartbeat restart timer to run after ${heartbeatRestartMs / 1000}ms`)
+            this.HEARTBEAT_RESTART_TIMER = setTimeout(() => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Heartbeat not received before timer expired, forcing reconnect`)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+            }, heartbeatRestartMs)
             
             stream.on(this.DATA_EVENT_NAME, (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved on host: ${this.host}: ${data.toString()}`)
@@ -98,8 +112,11 @@ class DahuaEvents {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
                 this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
             })
+           
    
         }).catch((err: AxiosError) => {
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, 'error')
+
             let error: DahuaError = {
                                         error: `Error received from host: ${this.host}`, 
                                         errorDetails: "Error Details:"
@@ -159,9 +176,15 @@ class DahuaEvents {
 
     
     private reconnect = (axiosRequestConfig: AxiosRequestConfig, reconnection_interval_ms: number) => {
+        if (this.HEARTBEAT_RESTART_TIMER) {
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Clearing heartbeat restart timer`)
+            clearTimeout(this.HEARTBEAT_RESTART_TIMER)
+        }
+
         //reconnect after 30s
-        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
+        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Will attempt reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
         setTimeout(() => {
+            this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host}`)
             this.connect(axiosRequestConfig, 0)
         }, reconnection_interval_ms)
     }
@@ -195,6 +218,9 @@ class DahuaEvents {
                     let alarm = event.split(';')
                     action = alarm[1].substr(7)
                     index = alarm[2].substr(6)
+                } else if (event.startsWith('Heartbeat')) {
+                    this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Received heartbeat, extending/resetting heartbeat restart timer from now`)
+                    this.HEARTBEAT_RESTART_TIMER = this.HEARTBEAT_RESTART_TIMER?.refresh();
                 }
             })
         } catch (e) {
