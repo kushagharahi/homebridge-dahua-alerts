@@ -16,7 +16,7 @@ class DahuaEvents {
         keepAlive: true,
         keepAliveMsecs: 1000,
         maxSockets: 1,
-        maxFreeSockets: 1 //TODO: do we need a free socket?
+        maxFreeSockets: 1, //TODO: do we need a free socket?
     }
 
     private eventEmitter:           EventEmitter
@@ -37,17 +37,11 @@ class DahuaEvents {
         }
 
         const httpKeepAliveAgent = new HttpAgent({
-            keepAlive: this.AGENT_SETTINGS.keepAlive,
-            keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
-            maxSockets: this.AGENT_SETTINGS.maxSockets,
-            maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+            ...this.AGENT_SETTINGS
         })
         
         const httpsKeepAliveAgent = new HttpsAgent({
-            keepAlive: this.AGENT_SETTINGS.keepAlive,
-            keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
-            maxSockets: this.AGENT_SETTINGS.maxSockets,
-            maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+            ...this.AGENT_SETTINGS,
             rejectUnauthorized: false,
             minVersion: "TLSv1"
         })
