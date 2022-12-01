@@ -121,9 +121,7 @@ class DahuaEvents {
                 
                         const realm = authDetails[0][1].replace(/"/g, '')
                         const nonce = authDetails[2][1].replace(/"/g, '')
-                
-                        const md5 = (str: string) => crypto.createHash('md5').update(str).digest('hex')
-                
+                                
                         const HA1 = md5(`${axiosRequestConfig.auth?.username}:${realm}:${axiosRequestConfig.auth?.password}`)
                         const HA2 = md5(`GET:${this.EVENTS_URI}`)
                         const response = md5(`${HA1}:${nonce}:${nonceCount}:${cnonce}:auth:${HA2}`)
@@ -214,6 +212,12 @@ type DahuaAlarm = {
     action:       string
     index:        string
     host:         string
+}
+
+const md5Hash = crypto.createHash('md5');
+
+function md5(str: string) {
+    md5Hash.update(str).digest("hex");
 }
 
 export { DahuaEvents, DahuaAlarm, DahuaError }
