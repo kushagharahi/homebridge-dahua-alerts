@@ -1,4 +1,4 @@
-import Axios, {AxiosError, AxiosRequestConfig} from 'axios'
+import Axios, {AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios'
 import { Agent as HttpsAgent, AgentOptions } from 'https'
 import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
@@ -79,7 +79,7 @@ class DahuaEvents {
                     // basic auth
                     Buffer.from(`${this.user}:${this.pass}`).toString('base64')
             }
-        }).then((res) => {
+        }).then((res: AxiosResponse) => {
 
             let stream: Readable = res.data
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
