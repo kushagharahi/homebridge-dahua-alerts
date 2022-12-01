@@ -208,10 +208,8 @@ type DahuaAlarm = {
     host:         string
 }
 
-const md5Hash = crypto.createHash('md5');
-
 function md5(str: string) {
-    md5Hash.update(str).digest("hex");
+    return crypto.createHash('md5').update(str).digest("hex");
 }
 
 // Axios will always send basic auth and not send the custom authorization header if "auth" is set
