@@ -36,15 +36,16 @@ class DahuaEvents {
         this.user = user
         this.pass = pass
 
-        const keepAliveAgent: HttpAgent | HttpsAgent = useHttp ?
-            new HttpAgent({
+        let keepAliveAgent: HttpAgent | HttpsAgent;
+        if(useHttp) {
+            keepAliveAgent = new HttpAgent({
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
             })
-            :
-            new HttpsAgent({
+        } else {
+            keepAliveAgent = new HttpsAgent({
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
@@ -52,6 +53,7 @@ class DahuaEvents {
                 rejectUnauthorized: false,
                 minVersion: "TLSv1"
             })
+        }
 
         this.requestConfig = {
             url: `${useHttp ? 'http': 'https'}://${host}${this.EVENTS_URI}`,
