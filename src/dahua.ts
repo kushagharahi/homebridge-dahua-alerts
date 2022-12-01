@@ -36,29 +36,26 @@ class DahuaEvents {
             password: pass
         }
 
-        let keepAliveAgent: HttpAgent | HttpsAgent;
-        if(useHttp) {
-            keepAliveAgent = new HttpAgent({
-                keepAlive: this.AGENT_SETTINGS.keepAlive,
-                keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
-                maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-            })
-        } else {
-            keepAliveAgent = new HttpsAgent({
-                keepAlive: this.AGENT_SETTINGS.keepAlive,
-                keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
-                maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                rejectUnauthorized: false,
-                minVersion: "TLSv1"
-            })
-        }
+        const httpKeepAliveAgent = new HttpAgent({
+            keepAlive: this.AGENT_SETTINGS.keepAlive,
+            keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
+            maxSockets: this.AGENT_SETTINGS.maxSockets,
+            maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+        })
+        
+        const httpsKeepAliveAgent = new HttpsAgent({
+            keepAlive: this.AGENT_SETTINGS.keepAlive,
+            keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
+            maxSockets: this.AGENT_SETTINGS.maxSockets,
+            maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
+            rejectUnauthorized: false,
+            minVersion: "TLSv1"
+        })
 
         const axiosRequestConfig: AxiosRequestConfig ={
             url: `${useHttp ? 'http': 'https'}://${host}${this.EVENTS_URI}`,
-            httpsAgent: keepAliveAgent, 
-            httpAgent: keepAliveAgent,
+            httpAgent: httpKeepAliveAgent,
+            httpsAgent: httpsKeepAliveAgent, 
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
