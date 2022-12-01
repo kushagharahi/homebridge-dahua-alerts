@@ -62,13 +62,7 @@ class DahuaEvents {
     }
 
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
-        // if custom authorization header is set for digest auth, unset the axios auth config 
-        // because Axios will always send basic auth and not send the custom authorization header if "auth" is set
-        if (axiosRequestConfig.headers?.['authorization']) {
-            axiosRequestConfig.auth = undefined;
-        }
-
-        Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
+        Axios.request(patchAxiosRequestConfig(axiosRequestConfig)).then((res: AxiosResponse) => {
 
             let stream: Readable = res.data
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
@@ -218,6 +212,15 @@ const md5Hash = crypto.createHash('md5');
 
 function md5(str: string) {
     md5Hash.update(str).digest("hex");
+}
+
+// Axios will always send basic auth and not send the custom authorization header if "auth" is set
+// unset "auth" if custom "authorization" header is set for digest auth
+function patchAxiosRequestConfig(axiosRequestConfig: AxiosRequestConfig): AxiosRequestConfig {
+    return {
+        ...axiosRequestConfig,
+        auth: axiosRequestConfig.headers?.['authorization'] ? undefined : axiosRequestConfig.auth
+    }
 }
 
 export { DahuaEvents, DahuaAlarm, DahuaError }
