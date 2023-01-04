@@ -3,25 +3,21 @@ import { Agent as HttpsAgent } from 'https'
 import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
-import tls from 'tls'
-
-tls.DEFAULT_MIN_VERSION = 'TLSv1'
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+import { Readable } from 'stream'
 
 class DahuaEvents {
     private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
-    private SOCKET_CLOSE:           string = 'close'
     private RECONNECT_INTERNAL_MS:  number = 10000
 
     private AGENT_SETTINGS = {
         keepAlive: true,
         keepAliveMsecs: 1000,
         maxSockets: 1,
-        maxFreeSockets: 0,
-        timeout: 1200000, //20min = 1200s
-        rejectUnauthorized: false
+        maxFreeSockets: 1 //TODO: do we need a free socket?
     }
+
+    private eventEmitter:           EventEmitter
      
     public ALARM_EVENT_NAME:        string = 'alarm'
     public DEBUG_EVENT_NAME:        string = 'alarm_payload'
@@ -29,31 +25,26 @@ class DahuaEvents {
     public DATA_EVENT_NAME:         string = 'data'
     public RECONNECTING_EVENT_NAME: string = 'reconnecting'
 
-    private eventEmitter:           EventEmitter
     private host:                   string
     private eventsWatchUri:         string
 
     constructor(host: string, user: string, pass: string, useHttp: boolean, events: Set<string>) {
-        this.host = host;
         //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind]
         //See more https://github.com/SaWey/home-assistant-dahua-event
         this.eventsWatchUri = `/cgi-bin/eventManager.cgi?action=attach&codes=[${Array.from(events).join(",")}]`;
-        this.eventEmitter = new EventEmitter()
-
+        this.host = host
         const auth: AxiosBasicCredentials = {
             username: user,
             password: pass
         }
 
-        let keepAliveAgent;
-
+        let keepAliveAgent
         if(useHttp) {
             keepAliveAgent = new HttpAgent({
                 keepAlive: this.AGENT_SETTINGS.keepAlive,
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout,
             }) 
         } else {
             keepAliveAgent = new HttpsAgent({
@@ -61,42 +52,59 @@ class DahuaEvents {
                 keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
                 maxSockets: this.AGENT_SETTINGS.maxSockets,
                 maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                timeout: this.AGENT_SETTINGS.timeout,
-                rejectUnauthorized: this.AGENT_SETTINGS.rejectUnauthorized
+                rejectUnauthorized: false,
+                minVersion: "TLSv1"
             })
         }
-        
 
         let useSSL = useHttp ? 'http': 'https'
         const axiosRequestConfig: AxiosRequestConfig ={
             url: `${useSSL}://${host}${this.eventsWatchUri}`,
-            httpAgent: keepAliveAgent, 
+            httpsAgent: keepAliveAgent, 
+            httpAgent: keepAliveAgent,
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
-            responseType: 'stream',
-            timeout: 1200000 //20min
+            responseType: 'stream'
         }
+
+        this.eventEmitter = new EventEmitter()
 
         this.connect(axiosRequestConfig, 0)
     }
 
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
-            res.data.socket.on(this.DATA_EVENT_NAME, (data: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved: ${data.toString()}`)
+
+            let stream: Readable = res.data
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
+
+            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Connection response received for host: ${this.host} ${JSON.stringify(res.headers)} ${JSON.stringify(res.statusText)} ${JSON.stringify(res.status)}`)
+            
+            stream.on(this.DATA_EVENT_NAME, (data: Buffer) => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Response recieved on host: ${this.host}: ${data.toString()}`)
                 let event = this.parseEventData(data.toString())
                 this.eventEmitter.emit(this.ALARM_EVENT_NAME, 
                     {action: event.action, index: event.index, eventType: event.eventType, host: this.host} as DahuaAlarm)
             })
 
-            res.data.socket.on(this.SOCKET_CLOSE, (close: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, "Socket connection timed out or closed by NVR.")
-                this.reconnect(axiosRequestConfig, 1000)
+            stream.on('close', () => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection closed for host: ${this.host}`)
             })
+            
+            stream.on('error', (data: Buffer) => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+            })
+           
+            stream.on('end', () => {
+                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+            })
+   
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
-                                        error: `Error Received`, 
+                                        error: `Error received from host: ${this.host}`, 
                                         errorDetails: "Error Details:"
                                     }
 
@@ -123,7 +131,7 @@ class DahuaEvents {
                         const md5 = str => crypto.createHash('md5').update(str).digest('hex')
                 
                         const HA1 = md5(`${axiosRequestConfig.auth?.username}:${realm}:${axiosRequestConfig.auth?.password}`)
-                        const HA2 = md5(`GET:${this.eventsWatchUri}`);
+                        const HA2 = md5(`GET:${this.eventsWatchUri}`)
                         const response = md5(`${HA1}:${nonce}:${nonceCount}:${cnonce}:auth:${HA2}`)
                 
                         this.HEADERS['authorization'] = `Digest username="${axiosRequestConfig.auth?.username}",realm="${realm}",` +
@@ -131,7 +139,7 @@ class DahuaEvents {
                         `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`
                         
                         axiosRequestConfig.headers = this.HEADERS
-
+                        this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `401 received and www-authenticate headers, sending digest auth. Count: ${count}`)
                         this.connect(axiosRequestConfig, count)
                         return
                     } catch (e) {
@@ -155,7 +163,7 @@ class DahuaEvents {
     
     private reconnect = (axiosRequestConfig: AxiosRequestConfig, reconnection_interval_ms: number) => {
         //reconnect after 30s
-        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting in ${reconnection_interval_ms/1000}s.`)
+        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
         setTimeout(() => {
             this.connect(axiosRequestConfig, 0)
         }, reconnection_interval_ms)

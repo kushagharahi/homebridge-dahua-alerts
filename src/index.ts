@@ -18,7 +18,6 @@ export = (api: API) => {
 class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private readonly log: Logging
 	private readonly config: DahuaCameraConfig 
-
 	constructor(log: Logging, config: PlatformConfig) {
 		this.log = log
 		this.config = config as unknown as DahuaCameraConfig
