@@ -14,6 +14,7 @@ Confirmed working with:
 | Dahua DVR | Dahua/Amcrest Standalone Camera | Lorex DVR |
 | - | - | - |
 | - | IP3M-943B | - |
+| - | IP5M-B1186EB | - |
 | - | DH-IPC-HDW3641TMP | - |
 |  NVR4208-8P | - | - |
 | - | -| LHV1004 DHV |
