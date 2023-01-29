@@ -1,5 +1,5 @@
-import Axios, {AxiosBasicCredentials, AxiosResponse, AxiosError, AxiosRequestConfig} from 'axios'
-import { Agent as HttpsAgent } from 'https'
+import Axios, {AxiosBasicCredentials, AxiosError, AxiosRequestConfig, AxiosResponse} from 'axios'
+import { Agent as HttpsAgent, AgentOptions } from 'https'
 import { Agent as HttpAgent } from 'http'
 import { EventEmitter } from 'events'
 import crypto from 'crypto'
@@ -8,15 +8,15 @@ import { Readable } from 'stream'
 class DahuaEvents {
     //cgi-bin/eventManager.cgi?action=attach&codes=[AlarmLocal,VideoMotion,VideoLoss,VideoBlind] -- but we only care about VideoMotion
     private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
-    private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
-    
+    private HEADERS:                Record<string, string> = {'Accept':'multipart/x-mixed-replace'}
+
     private RECONNECT_INTERNAL_MS:  number = 10000
 
-    private AGENT_SETTINGS = {
+    private AGENT_SETTINGS: AgentOptions = {
         keepAlive: true,
         keepAliveMsecs: 1000,
         maxSockets: 1,
-        maxFreeSockets: 1 //TODO: do we need a free socket?
+        maxFreeSockets: 1, //TODO: do we need a free socket?
     }
 
     private eventEmitter:           EventEmitter
@@ -36,30 +36,20 @@ class DahuaEvents {
             password: pass
         }
 
-        let keepAliveAgent
-        if(useHttp) {
-            keepAliveAgent = new HttpAgent({
-                keepAlive: this.AGENT_SETTINGS.keepAlive,
-                keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
-                maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-            }) 
-        } else {
-            keepAliveAgent = new HttpsAgent({
-                keepAlive: this.AGENT_SETTINGS.keepAlive,
-                keepAliveMsecs: this.AGENT_SETTINGS.keepAliveMsecs,
-                maxSockets: this.AGENT_SETTINGS.maxSockets,
-                maxFreeSockets: this.AGENT_SETTINGS.maxFreeSockets,
-                rejectUnauthorized: false,
-                minVersion: "TLSv1"
-            })
-        }
+        const httpKeepAliveAgent = new HttpAgent({
+            ...this.AGENT_SETTINGS
+        })
+        
+        const httpsKeepAliveAgent = new HttpsAgent({
+            ...this.AGENT_SETTINGS,
+            rejectUnauthorized: false,
+            minVersion: "TLSv1"
+        })
 
-        let useSSL = useHttp ? 'http': 'https'
         const axiosRequestConfig: AxiosRequestConfig ={
-            url: `${useSSL}://${host}${this.EVENTS_URI}`,
-            httpsAgent: keepAliveAgent, 
-            httpAgent: keepAliveAgent,
+            url: `${useHttp ? 'http': 'https'}://${host}${this.EVENTS_URI}`,
+            httpAgent: httpKeepAliveAgent,
+            httpsAgent: httpsKeepAliveAgent, 
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
@@ -72,7 +62,7 @@ class DahuaEvents {
     }
 
     private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
-        Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
+        Axios.request(patchAxiosRequestConfig(axiosRequestConfig)).then((res: AxiosResponse) => {
 
             let stream: Readable = res.data
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
@@ -98,6 +88,7 @@ class DahuaEvents {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
                 this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
             })
+           
    
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
@@ -124,9 +115,7 @@ class DahuaEvents {
                 
                         const realm = authDetails[0][1].replace(/"/g, '')
                         const nonce = authDetails[2][1].replace(/"/g, '')
-                
-                        const md5 = str => crypto.createHash('md5').update(str).digest('hex')
-                
+                                
                         const HA1 = md5(`${axiosRequestConfig.auth?.username}:${realm}:${axiosRequestConfig.auth?.password}`)
                         const HA2 = md5(`GET:${this.EVENTS_URI}`)
                         const response = md5(`${HA1}:${nonce}:${nonceCount}:${cnonce}:auth:${HA2}`)
@@ -135,7 +124,6 @@ class DahuaEvents {
                         `nonce="${nonce}",uri="${this.EVENTS_URI}",qop="auth",algorithm="MD5",` +
                         `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`
                         
-                        axiosRequestConfig.headers = this.HEADERS
                         this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `401 received and www-authenticate headers, sending digest auth. Count: ${count}`)
                         this.connect(axiosRequestConfig, count)
                         return
@@ -143,7 +131,7 @@ class DahuaEvents {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
                 } else {
-                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
+                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.statusText}`
                 }
             // client never received a response, or request never left
             } else if(err.request) {
@@ -160,8 +148,9 @@ class DahuaEvents {
     
     private reconnect = (axiosRequestConfig: AxiosRequestConfig, reconnection_interval_ms: number) => {
         //reconnect after 30s
-        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
+        this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Will attempt reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
         setTimeout(() => {
+            this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host}`)
             this.connect(axiosRequestConfig, 0)
         }, reconnection_interval_ms)
     }
@@ -217,6 +206,19 @@ type DahuaAlarm = {
     action:       string
     index:        string
     host:         string
+}
+
+function md5(str: string) {
+    return crypto.createHash('md5').update(str).digest("hex");
+}
+
+// Axios will always send basic auth and not send the custom authorization header if "auth" is set
+// unset "auth" if custom "authorization" header is set for digest auth
+function patchAxiosRequestConfig(axiosRequestConfig: AxiosRequestConfig): AxiosRequestConfig {
+    return {
+        ...axiosRequestConfig,
+        auth: axiosRequestConfig.headers?.['authorization'] ? undefined : axiosRequestConfig.auth
+    }
 }
 
 export { DahuaEvents, DahuaAlarm, DahuaError }
