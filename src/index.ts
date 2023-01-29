@@ -61,6 +61,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 				})
 				events.getEventEmitter().on(events.DEBUG_EVENT_NAME, (data) => this.log.debug(data))
 				events.getEventEmitter().on(events.RECONNECTING_EVENT_NAME, (data) => this.log.debug(data))
+				events.getEventEmitter().on(events.INFO_EVENT_NAME, (data) => this.log.info(data))
 			})
 		}
 	}
@@ -111,7 +112,7 @@ class DahuaMotionAlertsPlatform implements IndependentPlatformPlugin {
 	private getCameraName = (alarm: DahuaAlarm): (string | null)  => {
 		for(let i = 0; i < this.config.cameras.length; i++) {
 			let camera = this.config.cameras[i]
-			if(camera.index === Number(alarm.index)) {
+			if(camera.index === alarm.index) {
 				if((camera.cameraCredentials && camera.cameraCredentials.host === alarm.host && camera.triggerEventTypes.includes(alarm.eventType)) || 
 					(!camera.cameraCredentials && this.config.host && this.config.host === alarm.host && camera.triggerEventTypes.includes(alarm.eventType))) {
 						return camera.cameraName

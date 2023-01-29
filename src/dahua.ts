@@ -20,6 +20,7 @@ class DahuaEvents {
     private eventEmitter:           EventEmitter
      
     public ALARM_EVENT_NAME:        string = 'alarm'
+    public INFO_EVENT_NAME:         string = 'info'
     public DEBUG_EVENT_NAME:        string = 'alarm_payload'
     public ERROR_EVENT_NAME:        string = 'error'
     public DATA_EVENT_NAME:         string = 'data'
@@ -65,19 +66,23 @@ class DahuaEvents {
             auth: auth,
             headers: this.HEADERS,
             method: 'GET',
-            responseType: 'stream'
+            responseType: 'stream',
+			timeout: 10 * 60 * 1000 // Timeout every 10 minutes to identify host going offline
         }
 
         this.eventEmitter = new EventEmitter()
 
-        this.connect(axiosRequestConfig, 0)
+        this.connect(axiosRequestConfig, 0, 1)
     }
 
-    private connect = (axiosRequestConfig: AxiosRequestConfig, count: number) => {
+    private connect = (axiosRequestConfig: AxiosRequestConfig, count: number, attempt: number) => {
         Axios.request(axiosRequestConfig).then((res: AxiosResponse) => {
 
             let stream: Readable = res.data
-            this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Successfully connected and listening to host: ${this.host}`)
+			
+			if (attempt > 0) { // skip logging normal reconnect events upon timeout
+				this.eventEmitter.emit(this.INFO_EVENT_NAME, `Successfully connected and listening to host: ${axiosRequestConfig.url} on ${attempt} attempt`)
+			}
 
             this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Connection response received for host: ${this.host} ${JSON.stringify(res.headers)} ${JSON.stringify(res.statusText)} ${JSON.stringify(res.status)}`)
             
@@ -93,18 +98,23 @@ class DahuaEvents {
             })
             
             stream.on('error', (data: Buffer) => {
-                this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`)
-                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+                let errorReason: string = data.toString()
+                if (errorReason === "Error: aborted") {
+					this.reconnect(axiosRequestConfig, 10, 0) // aborted via forced timeout, reconnect without delay
+				} else {
+					this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${errorReason}`)
+	                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS, 1)
+				}
             })
            
             stream.on('end', () => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
-                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS, 1)
             })
    
         }).catch((err: AxiosError) => {
             let error: DahuaError = {
-                                        error: `Error received from host: ${this.host}`, 
+                                        error: `Error received from host: ${this.host}. Will keep retrying every ${this.RECONNECT_INTERNAL_MS/1000}s /(attempt #${attempt})`, 
                                         errorDetails: "Error Details:"
                                     }
 
@@ -140,7 +150,7 @@ class DahuaEvents {
                         
                         axiosRequestConfig.headers = this.HEADERS
                         this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `401 received and www-authenticate headers, sending digest auth. Count: ${count}`)
-                        this.connect(axiosRequestConfig, count)
+                        this.connect(axiosRequestConfig, count, attempt)
                         return
                     } catch (e) {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
@@ -150,26 +160,33 @@ class DahuaEvents {
                 }
             // client never received a response, or request never left
             } else if(err.request) {
-                error.errorDetails = `${error.errorDetails} Didn't get a response from the NVR - ${err.message}`
+				if (err.code === 'EHOSTUNREACH') {
+					error.errorDetails = `${error.errorDetails} No connection to NVR - ${err.message}`
+				} else {
+					error.errorDetails = `${error.errorDetails} Didn't get a response from the NVR - ${err.message}`
+				}
             } else {
                 error.errorDetails = `${error.errorDetails} ${err.message}`
             }
 
-            this.eventEmitter.emit(this.ERROR_EVENT_NAME, error)
-            this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+			if (attempt <= 1) { // Notify only of first attempts, including those related to reconnecting
+				this.eventEmitter.emit(this.ERROR_EVENT_NAME, error)
+			} else {
+				this.eventEmitter.emit(this.DEBUG_EVENT_NAME, error)
+			}
+            this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS, ++attempt)
         })
     }
 
     
-    private reconnect = (axiosRequestConfig: AxiosRequestConfig, reconnection_interval_ms: number) => {
-        //reconnect after 30s
+    private reconnect = (axiosRequestConfig: AxiosRequestConfig, reconnection_interval_ms: number, attempt: number) => {
         this.eventEmitter.emit(this.RECONNECTING_EVENT_NAME, `Reconnecting to ${this.host} in ${reconnection_interval_ms/1000}s.`)
         setTimeout(() => {
-            this.connect(axiosRequestConfig, 0)
+            this.connect(axiosRequestConfig, 0, attempt)
         }, reconnection_interval_ms)
     }
 
-    private parseEventData = (data: string) : {action: string, index: string, eventType: string} => {
+    private parseEventData = (data: string) : {action: string, index: number, eventType: string} => {
         /** Sample data:
          
             myboundary
@@ -190,7 +207,7 @@ class DahuaEvents {
             }
          */
         let action = ""
-        let index = ""
+        let index = -999
         let eventType = ""
         try {
             let eventSplitByLine = data.split('\n')
@@ -199,7 +216,7 @@ class DahuaEvents {
                     let alarm = event.split(';')
                     eventType = alarm[0].substr(5)
                     action = alarm[1].substr(7)
-                    index = alarm[2].substr(6)
+                    index = Number(alarm[2].substr(6))
                 }
             })
         } catch (e) {
@@ -221,7 +238,7 @@ type DahuaError = {
 type DahuaAlarm = {
     eventType:    string
     action:       string
-    index:        string
+    index:        number
     host:         string
 }
 
