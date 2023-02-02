@@ -63,6 +63,32 @@
                             "required": true,
                 			"description": "Camera name you set in homebridge-camera-ffmpeg"
                         },
+                        "triggerEventTypes": {
+                            "title": "Trigger Event Type",
+                			"description": "Motion or IVS events to alert on",
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": ["VideoMotion", "VideoLoss", "VideoBlind", "CrossLineDetection", "CrossRegionDetection", "AlarmLocal",
+                                    "VideoAbnormalDetection", "LeftDetection", "TakenAwayDetection", "FaceDetection", "AudioMutation", "AudioAnomaly"]
+                            },
+                            "titleMap": [
+                                { "name": "Motion detect (standard)", "value": "VideoMotion" },
+                                { "name": "Video Loss", "value": "VideoLoss" },
+                                { "name": "Video Blind", "value": "VideoBlind" },
+                                { "name": "Alarm", "value": "AlarmLocal" },
+                                { "name": "Scene change/video abnormal", "value": "VideoAbnormalDetection" },
+                                { "name": "Tripwire (IVS)", "value": "CrossLineDetection" },
+                                { "name": "Intrusion (IVS)", "value": "CrossRegionDetection" },
+                                { "name": "Abandoned Object (IVS)", "value": "LeftDetection" },
+                                { "name": "Missing Object (IVS)", "value": "TakenAwayDetection" },
+                                { "name": "Face Detection (IVS)", "value": "FaceDetection" },
+                                { "name": "Audio Intensity Change", "value": "AudioMutation" },
+                                { "name": "Audio Input Abnormal", "value": "AudioAnomaly" }
+                            ],
+                            "default": ["VideoMotion"],
+                            "required": true
+                        },
                         "cameraCredentials": {
                             "title": "Override Camera Connection Credentials<br />Required if using a standalone camera (without NVR) and/or on a different host/user/pass than the ones (un)defined at the top level",
                             "type": "object",
@@ -123,6 +149,7 @@
             "items": [
                 "cameras[].index",
                 "cameras[].cameraName",
+                "cameras[].triggerEventTypes",
                 {
                     "key": "cameras[].cameraCredentials",
                     "type": "section",
