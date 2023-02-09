@@ -27,9 +27,7 @@ describe('Dahua Events', () => {
       return Promise.reject({
         response: {
           data: { error: 'Unauthorized' },
-          headers: {
-            'www-authenticate': `Digest realm="${REALM}", \
-                                                      qop="auth", nonce="abcdefghijklmnopqrstuvwxyz", opaque="xyz"` },
+          headers: { 'www-authenticate': `Digest realm="${REALM}", qop="auth", nonce="abcdefghijklmnopqrstuvwxyz", opaque="xyz"` },
           status: 401
         }
       })
@@ -40,7 +38,6 @@ describe('Dahua Events', () => {
     let pass = 'pass'
 
     let events: DahuaEvents = new DahuaEvents(host, user, pass, false)
-
 
     // Wait for the end of the current event loop cycle before continuing with the next line of code. 
     // TL;DR wait for async process to finish above.
@@ -88,7 +85,6 @@ describe('Dahua Events', () => {
     expect(digestAuthParams).toHaveProperty('response')
     // Testing response is hard because it relies on MD5 hashing. So here we just do some basic checks.
     let response = digestAuthParams['response'].replaceAll('"', '')
-    
     // Check if the length is 32.
     expect(response.length).toEqual(32)
     // Check if it's a hexidecimal string.
