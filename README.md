@@ -138,6 +138,5 @@ To define a host/user/pass on a camera simply add the `cameraCredentials` object
 - `npm run build` to get JS output in `dist`
 - `npm test` to run Jest tests
 
-
 ## Credits
 Referenced [nayrnet/node-dahua-api](https://github.com/nayrnet/node-dahua-api) for the Dahua/Lorex motion alerts API.

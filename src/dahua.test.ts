@@ -3,9 +3,13 @@ import { Readable } from 'stream'
 import { DahuaAlarm, DahuaEvents } from './dahua'
 
 describe('Dahua Events', () => {
-  jest.mock('axios')
-  // Set axios.request to a mock function.
-  axios.request = jest.fn()
+
+  beforeEach(() => {
+    jest.mock('axios')
+    // Set axios.request to a mock function.
+    axios.request = jest.fn()
+  })
+
 
   test('Should successfully authenticate with digest auth', async () => {
     const AUTHORIZATION_HEADER_PARAM = 'authorization'
@@ -38,9 +42,13 @@ describe('Dahua Events', () => {
     let pass = 'pass'
     let events: DahuaEvents = new DahuaEvents(host, user, pass, false)
 
+    let mockDebugEventListener = jest.fn()
+    events.getEventEmitter().on(events.DEBUG_EVENT_NAME, mockDebugEventListener)
+
     // Wait for the end of the current event loop cycle before continuing with the next line of code. 
     // TLDR wait for async process to finish above.
     await new Promise(process.nextTick)
+
     // Expect the mock to be called twice. Once for the 401, and again with the Digest Auth Header.
     expect(axios.request).toBeCalledTimes(2)
     // Assertions the correct digest auth parameters for the second time the request was called.
@@ -99,13 +107,20 @@ describe('Dahua Events', () => {
     expect(cnonce.length).toEqual(48)
     // Check if it's a hexidecimal string.
     expect(/^[0-9a-f]+$/i.test(cnonce)).toBe(true)
+
+    expect(mockDebugEventListener).toBeCalledTimes(4)
+    expect(mockDebugEventListener.mock.calls[0][0]).toContain('401 received and www-authenticate headers, sending digest auth.')
+    expect(mockDebugEventListener.mock.calls[1][0]).toContain('Successfully connected and listening to host')
+    expect(mockDebugEventListener.mock.calls[2][0]).toContain('Connection response received for host')
+    expect(mockDebugEventListener.mock.calls[3][0]).toContain('Socket connection closed for host:')
   })
 
   test('Should parse and emit Node eventName:"alarm" events when receiving video motion events', async () => {
-    let mockReadable = new Readable()
+    let mockReadable: Readable = {} as Readable
     
     // Mock axios.request call. 
     let mockedResponse = (axios.request as jest.Mock).mockImplementation((config: AxiosRequestConfig) => {
+        mockReadable = new Readable()
         return Promise.resolve({ data: mockReadable, status: 200 } as AxiosResponse)
     })
 
@@ -119,12 +134,15 @@ describe('Dahua Events', () => {
     let mockEventListener = jest.fn()
     events.getEventEmitter().on(events.ALARM_EVENT_NAME, mockEventListener)
 
+    let mockDebugEventListener = jest.fn()
+    events.getEventEmitter().on(events.DEBUG_EVENT_NAME, mockDebugEventListener)
+
     // Push new alarm event to the stream.
     mockReadable.push(`myboundary
     Content-Type: text/plain
     Content-Length:36
     Code=VideoMotion;action=Stop;index=0`)
-
+    
     // Push a different alarm event structure to the stream.
     mockReadable.push(`--myboundary
 
@@ -138,17 +156,25 @@ describe('Dahua Events', () => {
     // Pass null to signify the end of the data.
     mockReadable.push(null)
     // Destory the stream, as it will send a close event that we handle in dahua.
-    mockReadable.destroy()
-
+    mockReadable.destroy()  
     // Wait for the end of the current event loop cycle before continuing with the next line of code. 
     // TLDR wait for async process to finish above.
     await new Promise(process.nextTick)
 
-    expect(mockEventListener).toBeCalledTimes(2)
+    // Ensure we only ever connected once.
+    expect(mockedResponse).toHaveBeenCalledTimes(1)
+    // Ensure we received two events to our data event listener.
+    expect(mockEventListener).toHaveBeenCalledTimes(2)
     // First index of calls represents each call, second index represents argument in list of argument
     expect(mockEventListener.mock.calls[0][0] as DahuaAlarm).toStrictEqual({action:'Stop', index:"0", host: host} as DahuaAlarm)
     expect(mockEventListener.mock.calls[1][0] as DahuaAlarm).toStrictEqual({action:'Start', index:"5", host: host} as DahuaAlarm)
+
+    expect(mockDebugEventListener.mock.calls.length).toEqual(5)
+    expect(mockDebugEventListener.mock.calls[0][0]).toContain('Successfully connected and listening to host:')
+    expect(mockDebugEventListener.mock.calls[1][0]).toContain('Connection response received for host:')
+    expect(mockDebugEventListener.mock.calls[2][0]).toContain('Response recieved on host:')
+    expect(mockDebugEventListener.mock.calls[3][0]).toContain('Response recieved on host:')
+    expect(mockDebugEventListener.mock.calls[4][0]).toContain('Socket connection closed for host:')
   })
 
-  
 })
