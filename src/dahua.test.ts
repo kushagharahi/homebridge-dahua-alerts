@@ -1,6 +1,6 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
-import { Readable } from 'stream';
-import { DahuaEvents } from './dahua';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
+import { Readable } from 'stream'
+import { DahuaAlarm, DahuaEvents } from './dahua'
 
 describe('Dahua Events', () => {
   jest.mock('axios')
@@ -18,8 +18,8 @@ describe('Dahua Events', () => {
       // Check if authorization header exists and starts with Digest. 
       if (AUTHORIZATION_HEADER_PARAM in config.headers && config.headers[AUTHORIZATION_HEADER_PARAM].startsWith('Digest')) {
         // Create a stream.
-        const mockReadable = new Readable()
-        // Immediately destory it, as it will send a close event that we handle in dahua.
+        let mockReadable = new Readable()
+        // Immediately destory it, as it will send a close event, which will 
         mockReadable.destroy()
         return Promise.resolve({ data: mockReadable, status: 200 })
       }
@@ -31,17 +31,16 @@ describe('Dahua Events', () => {
           status: 401
         }
       })
-    });
+    })
 
     let host = '192.168.0.0'
     let user = 'user'
     let pass = 'pass'
-
     let events: DahuaEvents = new DahuaEvents(host, user, pass, false)
 
     // Wait for the end of the current event loop cycle before continuing with the next line of code. 
-    // TL;DR wait for async process to finish above.
-    await new Promise(process.nextTick);
+    // TLDR wait for async process to finish above.
+    await new Promise(process.nextTick)
     // Expect the mock to be called twice. Once for the 401, and again with the Digest Auth Header.
     expect(axios.request).toBeCalledTimes(2)
     // Assertions the correct digest auth parameters for the second time the request was called.
@@ -53,16 +52,15 @@ describe('Dahua Events', () => {
 
     let digestAuthHeader: String = axiosRequestConfig.headers[AUTHORIZATION_HEADER_PARAM]
     expect(digestAuthHeader).toContain('Digest')
-    console.log(digestAuthHeader)
 
     // Reduce down to kv pairs.
     let digestAuthParams = digestAuthHeader.replace('Digest ', '').split(',').reduce((acc, pair) => {
-      const index = pair.indexOf('=');
+      const index = pair.indexOf('=')
       const key = pair.substring(0, index)
       const value = pair.substring(index + 1)
       acc[key] = value
-      return acc;
-    }, {} as { [key: string]: string });
+      return acc
+    }, {} as { [key: string]: string })
 
     expect(digestAuthParams).toHaveProperty('username')
     expect(digestAuthParams['username']).toEqual(`"${user}"`)
@@ -101,5 +99,54 @@ describe('Dahua Events', () => {
     expect(cnonce.length).toEqual(48)
     // Check if it's a hexidecimal string.
     expect(/^[0-9a-f]+$/i.test(cnonce)).toBe(true)
-  });
-});
+  })
+
+  test('Should parse and emit Node eventName:"alarm" events when receiving video motion events', async () => {
+    let mockReadable = new Readable()
+    
+    // Mock axios.request call. 
+    let mockedResponse = (axios.request as jest.Mock).mockImplementation((config: AxiosRequestConfig) => {
+        return Promise.resolve({ data: mockReadable, status: 200 } as AxiosResponse)
+    })
+
+    // Setup socket connection.
+    let host = '192.168.0.0'
+    let user = 'user'
+    let pass = 'pass'
+    let events: DahuaEvents = new DahuaEvents(host, user, pass, false)
+
+    // Create mock event listener function and pass it in as the listener for alarm events.
+    let mockEventListener = jest.fn()
+    events.getEventEmitter().on(events.ALARM_EVENT_NAME, mockEventListener)
+
+    // Push new alarm event to the stream.
+    mockReadable.push(`myboundary
+    Content-Type: text/plain
+    Content-Length:36
+    Code=VideoMotion;action=Stop;index=0`)
+
+    // Push a different alarm event structure to the stream.
+    mockReadable.push(`--myboundary
+
+    Content-Type: text/plain
+
+    Content-Length:77
+
+    Code=VideoMotion;action=Start;index=5;data={
+    "SmartMotionEnable" : false`)
+    // Pass null to signify the end of the data.
+    mockReadable.push(null)
+
+    // Destory the stream, as it will send a close event that we handle in dahua.
+    mockReadable.destroy()
+
+    // Wait for the end of the current event loop cycle before continuing with the next line of code. 
+    // TLDR wait for async process to finish above.
+    await new Promise(process.nextTick)
+
+    expect(mockEventListener).toBeCalledTimes(2)
+    // First index of calls represents each call, second index represents argument in list of argument
+    expect(mockEventListener.mock.calls[0][0] as DahuaAlarm).toStrictEqual({action:'Stop', index:"0", host: host} as DahuaAlarm)
+    expect(mockEventListener.mock.calls[1][0] as DahuaAlarm).toStrictEqual({action:'Start', index:"5", host: host} as DahuaAlarm)
+  })
+})
