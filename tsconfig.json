@@ -13,7 +13,6 @@
       "sourceMap": true,
       "rootDir": "src",
       "outDir": "dist",
-  
       "strict": true,
       "esModuleInterop": true,
       "forceConsistentCasingInFileNames": true,
