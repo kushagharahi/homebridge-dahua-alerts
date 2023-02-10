@@ -134,9 +134,9 @@ describe('Dahua Events', () => {
 
     Code=VideoMotion;action=Start;index=5;data={
     "SmartMotionEnable" : false`)
+    
     // Pass null to signify the end of the data.
     mockReadable.push(null)
-
     // Destory the stream, as it will send a close event that we handle in dahua.
     mockReadable.destroy()
 
