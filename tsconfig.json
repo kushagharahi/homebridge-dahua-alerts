@@ -7,12 +7,12 @@
         "ES2015",
         "ES2016",
         "ES2017",
-        "ES2018"
+        "ES2018",
+        "ES2021"
       ],
       "sourceMap": true,
       "rootDir": "src",
       "outDir": "dist",
-  
       "strict": true,
       "esModuleInterop": true,
       "forceConsistentCasingInFileNames": true,

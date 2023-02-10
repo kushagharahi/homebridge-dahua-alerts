@@ -10,7 +10,7 @@ class DahuaEvents {
     private EVENTS_URI:             string = '/cgi-bin/eventManager.cgi?action=attach&codes=[VideoMotion]'
     private HEADERS:                any = {'Accept':'multipart/x-mixed-replace'}
     
-    private RECONNECT_INTERNAL_MS:  number = 10000
+    private RECONNECT_INTERVAL_MS:  number = 10000
 
     private AGENT_SETTINGS = {
         keepAlive: true,
@@ -91,12 +91,12 @@ class DahuaEvents {
             
             stream.on('error', (data: Buffer) => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection errored on host: ${this.host}, error received: ${data.toString()}`)
-                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERVAL_MS)
             })
            
             stream.on('end', () => {
                 this.eventEmitter.emit(this.DEBUG_EVENT_NAME, `Socket connection ended on host: ${this.host}`)
-                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+                this.reconnect(axiosRequestConfig, this.RECONNECT_INTERVAL_MS)
             })
    
         }).catch((err: AxiosError) => {
@@ -143,7 +143,10 @@ class DahuaEvents {
                         error.errorDetails = `${error.errorDetails} Error when building digest auth headers, please open an issue with this log: \n ${e}`
                     }
                 } else {
-                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status} Response: ${err.response.data.statusMessage}`
+                    error.errorDetails = `${error.errorDetails} Status Code: ${err.response.status}`
+                    if(err.response.data) {
+                        error.errorDetails = `${error.errorDetails} Response: ${err.response.data.statusMessage}`
+                    }
                 }
             // client never received a response, or request never left
             } else if(err.request) {
@@ -153,7 +156,7 @@ class DahuaEvents {
             }
 
             this.eventEmitter.emit(this.ERROR_EVENT_NAME, error)
-            this.reconnect(axiosRequestConfig, this.RECONNECT_INTERNAL_MS)
+            this.reconnect(axiosRequestConfig, this.RECONNECT_INTERVAL_MS)
         })
     }
 
