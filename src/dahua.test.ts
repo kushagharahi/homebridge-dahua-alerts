@@ -134,7 +134,7 @@ describe('Dahua Events', () => {
 
     Code=VideoMotion;action=Start;index=5;data={
     "SmartMotionEnable" : false`)
-    
+
     // Pass null to signify the end of the data.
     mockReadable.push(null)
     // Destory the stream, as it will send a close event that we handle in dahua.
@@ -149,4 +149,6 @@ describe('Dahua Events', () => {
     expect(mockEventListener.mock.calls[0][0] as DahuaAlarm).toStrictEqual({action:'Stop', index:"0", host: host} as DahuaAlarm)
     expect(mockEventListener.mock.calls[1][0] as DahuaAlarm).toStrictEqual({action:'Start', index:"5", host: host} as DahuaAlarm)
   })
+
+  
 })
