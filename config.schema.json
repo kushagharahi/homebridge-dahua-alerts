@@ -41,6 +41,50 @@
                 "required": false,
                 "description": "Use HTTP instead of HTTPs by default."
             },
+            "eventTypes": {
+                "title": "Event Types",
+                "type": "object",
+                "required": true,
+                "properties": {
+                    "VideoMotion": {
+                        "title": "Video Motion",
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Notify on motion detection events",
+                        "required": false
+                    },
+                    "AlarmLocal": {
+                        "title": "Alarm",
+                        "type": "boolean",
+                        "description": "Notify on alarm detection events",
+                        "required": false
+                    },
+                    "SmartMotionHuman": {
+                        "title": "Smart Motion (Human)",
+                        "type": "boolean",
+                        "description": "Notify on smart motion detection (human) events",
+                        "required": false
+                    },
+                    "SmartMotionVehicle": {
+                        "title": "Smart Motion (Vehicle)",
+                        "type": "boolean",
+                        "description": "Notify on smart motion detection (vehicle) events",
+                        "required": false
+                    },
+                    "CrossLineDetection": {
+                        "title": "Cross Line Detection",
+                        "type": "boolean",
+                        "description": "Notify on tripwire events",
+                        "required": false
+                    },
+                    "CrossRegionDetection": {
+                        "title": "Cross Region Detection",
+                        "type": "boolean",
+                        "description": "Notify on intrusion events",
+                        "required": false
+                    }
+                }
+            },
             "cameras": {
                 "title": "Cameras",
                 "type": "array",
@@ -117,6 +161,20 @@
         },
         {
             "key": "useHttp"
+        },
+        {
+            "key": "eventTypes",
+            "type": "section",
+            "expandable": true,
+            "expanded": false,
+            "items":[
+                "eventTypes.VideoMotion",
+                "eventTypes.AlarmLocal",
+                "eventTypes.SmartMotionHuman",
+                "eventTypes.SmartMotionVehicle",
+                "eventTypes.CrossLineDetection",
+                "eventTypes.CrossRegionDetection"
+            ]
         },
         {
             "key": "cameras",
