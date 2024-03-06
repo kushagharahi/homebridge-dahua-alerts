@@ -4,6 +4,7 @@ export type DahuaCameraConfig = {
   pass:                           string
   homebridgeCameraFfmpegHttpPort: number
   useHttp:                        boolean
+  eventTypes:                     [string: boolean]
   cameras:                        Array<CameraConfig>
 }
   
