@@ -6,9 +6,6 @@ Routes motion alerts for Dahua, Alhua, Amcrest and Lorex camera streams to homeb
 
 Like this plugin? -> [Buy me a ☕coffee☕](https://www.buymeacoffee.com/kusha)
 
-
-### This plugin **only** supports **VideoMotion** alerts, not any SmartMotion detection. You must disable those features in order for this plugin to work correctly. [Please check issue #15 if you have compatible hardware and would like to contribute SmartMotion dectection](https://github.com/kushagharahi/homebridge-dahua-alerts/issues/15)
-
 ---
 Confirmed working with: 
 | Dahua DVR | Dahua/Amcrest Standalone Camera | Lorex DVR |
@@ -102,6 +99,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
     "host": "XX.XX.XX.XX",
     "user": "admin",
     "pass": "XX",
+    "eventTypes": [ "VideoMotion"],
     "platform": "dahua-alerts"
 }
 ```
@@ -109,6 +107,7 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
 - `host` is the IP of the NVR or camera
 - `user` is username of the NVR or camera
 - `pass` is the password of the NVR or camera
+- `eventTypes` are a list of events you want to subscribe to. Currently the list includes `VideoMotion`, `AlarmLocal`, `SmartMotionHuman`, `SmartMotionVehicle`, `CrossLineDetection`, and `CrossRegionDetection`
 - `useHttp` (optional) use HTTP instead of HTTPS to connect to host
 
 For each camera you want to monitor, add a new entry to the `cameras` array.
