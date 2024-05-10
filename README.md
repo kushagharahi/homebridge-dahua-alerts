@@ -99,7 +99,10 @@ but lots of Dahua/Lorex NVRs and standalone cameras share this VideoMotion api.
     "host": "XX.XX.XX.XX",
     "user": "admin",
     "pass": "XX",
-    "eventTypes": [ "VideoMotion"],
+    "eventTypes": 
+        {
+        "VideoMotion": true
+        },
     "platform": "dahua-alerts"
 }
 ```
